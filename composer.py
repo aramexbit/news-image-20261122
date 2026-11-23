@@ -196,20 +196,24 @@ ICONS = [icon_quake, icon_missile, icon_quote, icon_eye, icon_border,
 # The outline data lived here until the photo replaced it.
 
 # Story number -> (lon, lat, nudge_x, nudge_y) for the map dots.
-# No nudges. The true places cluster too tightly for legible numbered
-# dots at this size (Washington/Ottawa are 4 px apart, as are the four
+# The true places cluster too tightly for legible numbered dots at
+# this size (Washington/Ottawa are ~8 px apart, as are the four
 # European stories), so each dot sits at the nearest on-land point in
 # the same region that keeps every number readable: Poland central,
 # eastern Ukraine, Jutland, north-eastern Estonia, Virginia, the
 # Maine / Quebec border, eastern Myanmar, western Odisha.
+# The tight clusters get small leader nudges (a few pixels, still on
+# land in the same region) that pull neighbours apart: Europe's four
+# dots (2/3/4/5) fan out from each other, and the US pair (6/7)
+# separates the same way, so no two numbered dots touch.
 DOTS = [
     (1, -75, -10, 0, 0),    # Peru, west coast of South America
-    (2, 19, 51, 0, 0),      # Poland
-    (3, 33, 49, 0, 0),      # Ukraine
-    (4, 10, 56, 0, 0),      # Denmark
-    (5, 27, 60, 0, 0),      # Estonia
-    (6, -80, 37, 0, 0),     # US east coast
-    (7, -70, 48, 0, 0),     # Canada / US border
+    (2, 19, 51, -4, 2),    # Poland, nudged down-left from Ukraine
+    (3, 33, 49, 4, 2),      # Ukraine, nudged down-right from Poland
+    (4, 10, 56, -3, -2),    # Denmark, nudged up-left from Poland
+    (5, 27, 60, 3, 0),     # Estonia, nudged right from Ukraine
+    (6, -80, 37, -2, 2),    # US east coast, nudged down-left
+    (7, -70, 48, 2, -2),    # Canada / US border, nudged up-right
     (8, 113, 24, 0, 0),     # Shenzhen, China coast
     (9, 98, 21, 0, 0),      # Myanmar
     (10, 82, 19, 0, 0),     # Odisha, east coast of India
@@ -264,13 +268,15 @@ def draw_map(draw, page, x0, y0, w, h):
     map_img = strip.resize((Wm, Hm), Image.LANCZOS)
 
     # --- mute the palette toward the paper ----------------------------
-    # Desaturate the blues and greens just a little, then wash the
-    # whole photo slightly toward the paper tone so it stops popping.
-    map_img = ImageEnhance.Color(map_img).enhance(0.88)
-    map_img = ImageEnhance.Contrast(map_img).enhance(1.03)
-    map_img = ImageEnhance.Brightness(map_img).enhance(1.02)
+    # Newspaper treatment: desaturate hard so the ocean and the land
+    # stop competing with the cream paper, then wash the whole photo
+    # toward the paper tone. The satellite texture and every coastline
+    # stay fully visible; only the colour is quieter and warmer.
+    map_img = ImageEnhance.Color(map_img).enhance(0.52)
+    map_img = ImageEnhance.Contrast(map_img).enhance(1.00)
+    map_img = ImageEnhance.Brightness(map_img).enhance(1.03)
     map_img = Image.blend(map_img,
-                          Image.new("RGB", (Wm, Hm), PAPER), 0.05)
+                          Image.new("RGB", (Wm, Hm), PAPER), 0.15)
 
     # --- warm vignette: the ocean drifts toward the paper at edges ---
     # Kept tight to the frame and light: just a kiss of paper tone
@@ -293,10 +299,15 @@ def draw_map(draw, page, x0, y0, w, h):
         cx, cy = fpx(lon, lat)
         cx += nx
         cy += ny
-        # Small dots: the European stories and Washington/Ottawa sit
-        # only ~8 px apart, so a radius of 5 (7 for two-digit 10) is
-        # what keeps every number readable without overlap.
-        r = 5 if num < 10 else 7
+        # Cluster dots are a touch smaller (radius 4) so neighbours
+        # pulled apart by the nudges above never merge; lone dots
+        # stay radius 5, and two-digit 10 stays radius 6.
+        if num in (2, 3, 4, 5, 6, 7):
+            r = 4
+        elif num < 10:
+            r = 5
+        else:
+            r = 6
         # Thin dark ring only (no filled halo disc): neighbours sit
         # ~8 px apart, so a disc would merge them into one blob.
         draw.ellipse([cx - r - 1, cy - r - 1, cx + r + 1, cy + r + 1],
@@ -310,18 +321,27 @@ def draw_map(draw, page, x0, y0, w, h):
 
 
 # ------------------------------------------------------------- hero cards
-def paste_hero(draw, page, path, x, y, w, h, kicker, headline):
-    """Paste a hero photo and caption it with a dark band at the bottom."""
+def paste_hero(draw, page, path, x, y, w, h, kicker, headline,
+               band_h=68, head_size=17, kicker_size=12):
+    """Paste a hero photo and caption it with a dark band at the bottom.
+
+    band_h / head_size / kicker_size set the caption hierarchy: the
+    lead story gets a taller band and a bigger headline, the second
+    story a shorter band and a smaller one, so the two photos never
+    read as equals. The caption always ends inside the photo.
+    """
     photo = Image.open(path).convert("RGB").resize((w, h), Image.LANCZOS)
     page.paste(photo, (x, y))
-    band = Image.new("RGBA", (w, 68), (10, 12, 20, 205))
-    page.paste(band, (x, y + h - 68), band)
+    band = Image.new("RGBA", (w, band_h), (10, 12, 20, 205))
+    page.paste(band, (x, y + h - band_h), band)
     draw.rectangle([x, y, x + w - 1, y + h - 1], outline=NAVY, width=2)
-    draw.text((x + 10, y + h - 62), kicker, font=font(SANS_BOLD, 12),
-              fill=GOLD_LIGHT)
-    lines = fit_lines(draw, headline, font(SANS_BOLD, 17), w - 20, 2)
-    text_block(draw, x + 10, y + h - 44, lines, font(SANS_BOLD, 17),
-               (255, 255, 255), 20)
+    draw.text((x + 10, y + h - band_h + 6), kicker,
+              font=font(SANS_BOLD, kicker_size), fill=GOLD_LIGHT)
+    lines = fit_lines(draw, headline, font(SANS_BOLD, head_size),
+                      w - 20, 2)
+    text_block(draw, x + 10, y + h - band_h + 26, lines,
+               font(SANS_BOLD, head_size), (255, 255, 255),
+               head_size + 3)
 
 
 # ---------------------------------------------------------------- content
@@ -431,22 +451,38 @@ def build_page(base_dir):
     hrule(draw, MX, W - MX, 146, fill=NAVY, width=3)
 
     # --- hero photos ----------------------------------------------------
-    hw = (CW - 8) // 2
-    hh = 260
+    # ONE clear hero: the Gulf war is the single dominant lead — two
+    # thirds of the width, the tallest photo, the biggest caption
+    # headline — while COP31 is a visibly secondary second story:
+    # one third of the width, a shorter photo, a smaller caption.
+    # Both photos and both headlines stay; only the hierarchy changes.
+    gulf_w, cop_w = 640, 320
+    gulf_h, cop_h = 260, 168
     paste_hero(draw, page, os.path.join(base_dir, "assets", "hero_gulf.jpg"),
-               MX, 154, hw, hh, "THE GULF - WAR, MONTH 9",
-               "Drones over Kuwait: air defences fire as the Gulf war widens")
+               MX, 154, gulf_w, gulf_h, "THE GULF - WAR, MONTH 9",
+               "Drones over Kuwait: air defences fire as the Gulf war widens",
+               band_h=76, head_size=20, kicker_size=13)
     paste_hero(draw, page, os.path.join(base_dir, "assets", "hero_cop31.jpg"),
-               MX + hw + 8, 154, hw, hh, "CLIMATE - COP31, TURKEY",
-               "Deadlocked in overtime: no fossil-fuel deal in sight")
+               MX + gulf_w + 8, 154, cop_w, cop_h, "CLIMATE - COP31, TURKEY",
+               "Deadlocked in overtime: no fossil-fuel deal in sight",
+               band_h=58, head_size=14, kicker_size=11)
 
     # --- hero story text -------------------------------------------------
-    for col, (head, body) in enumerate((HERO_LEFT, HERO_RIGHT)):
-        x = MX + col * (hw + 8)
-        hlines = fit_lines(draw, head, font(SERIF_BOLD, 19), hw, 2)
-        y = text_block(draw, x, 422, hlines, font(SERIF_BOLD, 19), NAVY, 21)
-        blines = fit_lines(draw, body, font(SANS, 13), hw, 5)
-        text_block(draw, x, y + 3, blines, font(SANS, 13), INK, 15)
+    # Gulf text under the big photo, full two-thirds width, biggest
+    # headline on the page; COP31 text under the small photo, one
+    # third wide, smaller headline and body. Wording unchanged.
+    gulf_head, gulf_body = HERO_LEFT
+    hlines = fit_lines(draw, gulf_head, font(SERIF_BOLD, 23), gulf_w, 2)
+    y = text_block(draw, MX, 422, hlines, font(SERIF_BOLD, 23), NAVY, 25)
+    blines = fit_lines(draw, gulf_body, font(SANS, 13), gulf_w, 4)
+    text_block(draw, MX, y + 3, blines, font(SANS, 13), INK, 15)
+
+    cop_x = MX + gulf_w + 8
+    cop_head, cop_body = HERO_RIGHT
+    hlines = fit_lines(draw, cop_head, font(SERIF_BOLD, 15), cop_w, 3)
+    y = text_block(draw, cop_x, 330, hlines, font(SERIF_BOLD, 15), NAVY, 17)
+    blines = fit_lines(draw, cop_body, font(SANS, 11.5), cop_w, 6)
+    text_block(draw, cop_x, y + 3, blines, font(SANS, 11.5), INK, 13)
 
     # --- markets strip ----------------------------------------------------
     draw.rectangle([MX, 546, W - MX, 604], fill=RED_TINT, outline=RED, width=1)
@@ -472,6 +508,8 @@ def build_page(base_dir):
               fill=RED)
 
     # --- featured stories --------------------------------------------------
+    # Two equal columns again from here down; hw is the half width.
+    hw = (CW - 8) // 2
     draw.text((MX, 612), "THE DAY'S BIG STORIES",
               font=font(SERIF_BOLD, 16), fill=NAVY)
     hrule(draw, MX, W - MX, 632, fill=GOLD, width=2)
