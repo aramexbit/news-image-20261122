@@ -424,7 +424,8 @@ HERO_RIGHT = (
     "Climate talks in Turkey have failed to reach a final deal on fossil "
     "fuels and are running into overtime, with negotiators still "
     "deadlocked. A separate deal on artificial intelligence also fell "
-    "short, failing to attract the big U.S. tech companies.",
+    "short, failing to attract the big U.S. tech companies. Envoys say "
+    "the fossil-fuel text remains the sticking point.",
 )
 
 
@@ -479,7 +480,10 @@ def build_page(base_dir):
     # --- hero story text -------------------------------------------------
     # Gulf text under the big photo, full two-thirds width, biggest
     # headline on the page; COP31 text under the small photo, one
-    # third wide, smaller headline and body. Wording unchanged.
+    # third wide, smaller headline and body. Gulf wording unchanged;
+    # the COP31 body gains one closing sentence, and a small boxed
+    # sidebar under it, so the right column no longer ends well above
+    # the Gulf article.
     gulf_head, gulf_body = HERO_LEFT
     hlines = fit_lines(draw, gulf_head, font(SERIF_BOLD, 23), gulf_w, 2)
     y = text_block(draw, MX, 422, hlines, font(SERIF_BOLD, 23), NAVY, 25)
@@ -491,7 +495,49 @@ def build_page(base_dir):
     hlines = fit_lines(draw, cop_head, font(SERIF_BOLD, 15), cop_w, 3)
     y = text_block(draw, cop_x, 330, hlines, font(SERIF_BOLD, 15), NAVY, 17)
     blines = fit_lines(draw, cop_body, font(SANS, 11.5), cop_w, 6)
-    text_block(draw, cop_x, y + 3, blines, font(SANS, 11.5), INK, 13)
+    body_end = text_block(draw, cop_x, y + 3, blines,
+                          font(SANS, 11.5), INK, 13)
+
+    # --- COP31 at a glance ------------------------------------------------
+    # Boxed sidebar under the COP31 body: the right column used to end
+    # a long way above the Gulf article, leaving a bare patch of paper
+    # over the markets strip. The box fills that patch so the two
+    # columns land together. Every line sits on measured ink, as in the
+    # markets strip: 6 px of air above the title's ink and below the
+    # last fact's ink, 10 px at the sides, and each red bullet centred
+    # on its fact line's ink, never touching a border. The box height
+    # is the exact stack: top pad + title + gap + the fact lines
+    # (leading between them, the last line's own ink height) + bottom
+    # pad, so the air the comment promises is the air drawn.
+    glance = [
+        "Host: Turkey",
+        "Status: talks running into overtime",
+        "Fossil fuels: no final deal \u2014 deadlocked",
+        "AI deal: fell short; big U.S. tech stayed out",
+    ]
+    gtf = font(SANS_BOLD, 11)
+    gff = font(SANS, 11)
+    tb = draw.textbbox((0, 0), "COP31 AT A GLANCE", font=gtf)
+    title_h = tb[3] - tb[1]
+    fact_boxes = [draw.textbbox((0, 0), f, font=gff) for f in glance]
+    fact_h = max(b[3] - b[1] for b in fact_boxes)
+    fact_lead = fact_h + 1
+    box_y0 = body_end + 6
+    box_h = (6 + title_h + 3
+             + (len(glance) - 1) * fact_lead + fact_h + 6)
+    draw.rectangle([cop_x, box_y0, cop_x + cop_w, box_y0 + box_h],
+                   fill=PAPER_DARK, outline=NAVY, width=1)
+    cy = box_y0 + 6
+    draw.text((cop_x + 10, cy - tb[1]), "COP31 AT A GLANCE",
+              font=gtf, fill=NAVY)
+    cy += title_h + 3
+    for f, fb in zip(glance, fact_boxes):
+        fh = fb[3] - fb[1]
+        mid = cy + fh // 2
+        draw.rectangle([cop_x + 10, mid - 2, cop_x + 14, mid + 2],
+                       fill=RED)
+        draw.text((cop_x + 21, cy - fb[1]), f, font=gff, fill=INK)
+        cy += fact_lead
 
     # --- markets strip ----------------------------------------------------
     # Boxed strip: every line sits on measured ink, never on a fixed
