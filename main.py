@@ -36,6 +36,11 @@ tighter cards with 26-pixel pictogram strips, and the five-column
 brief band — four columns at 10 pt could not hold the band, because
 two-line briefs need 22 px rows and eleven rows would run past the
 footer, so the longest briefs were trimmed to fit two lines.
+
+v4.1 (55b): briefs 43 and 44 reworded for clean English, and the two
+empty grid cells closed — the last brief row runs three wide cells
+and the second NINE row runs four wide cards, so every row fills
+the full width and no cell sits empty anywhere on the page.
 """
 
 import os
@@ -321,9 +326,9 @@ BRIEFS = [
      "NBC", "AM"),
     (42, "Pennsylvania", "Measles kills 12 in Amish communities.",
      "Guardian", "AM"),
-    (43, "Dymer", "Wave drone hits a block; 3 dead, ~10 trapped.",
+    (43, "Dymer", "Drone hits a block; 3 dead, ~10 trapped.",
      "Reuters", "EU"),
-    (44, "Gulf", "Trump: test blockade, end 'at the bottom of the sea'.",
+    (44, "Gulf", "Trump to Iran: test it, end 'at the bottom of the sea'.",
      "Fox News", "ME"),
     (45, "Istanbul", "Thousands march in Besiktas over Sozcu takeover.",
      "AFP", "EU"),
@@ -1172,12 +1177,15 @@ def build_page():
     for i, story in enumerate(TEN):
         col = i % 5
         row = i // 5
-        x = MX + col * (card_w + card_gap)
+        # Second row holds four cards (9-12): stretch them to fill the
+        # full width so no grid cell sits empty at the row's right end.
+        cw = card_w if row == 0 else (CW - 3 * card_gap) // 4
+        x = MX + col * (cw + card_gap)
         y = grid_y + row * (card_h + card_gap)
-        draw.rectangle([x, y, x + card_w, y + card_h], fill=(255, 255, 255),
+        draw.rectangle([x, y, x + cw, y + card_h], fill=(255, 255, 255),
                        outline=RULE, width=1)
-        TEN_ART[story["art"]](draw, x + 1, y + 1, card_w - 2, ill_h2)
-        draw.line([(x, y + ill_h2 + 1), (x + card_w, y + ill_h2 + 1)],
+        TEN_ART[story["art"]](draw, x + 1, y + 1, cw - 2, ill_h2)
+        draw.line([(x, y + ill_h2 + 1), (x + cw, y + ill_h2 + 1)],
                   fill=RULE, width=1)
         # Number chip on the illustration, top-left.
         nf = font(SANS_BOLD, 11)
@@ -1191,15 +1199,15 @@ def build_page():
         # Place + beat, tag chip right.
         place = "%s \u00b7 %s" % (story["place"], story["beat"])
         pf = font(SANS_BOLD, 9)
-        draw.text((tx, ty), one_line(draw, place, pf, card_w - 66),
+        draw.text((tx, ty), one_line(draw, place, pf, cw - 66),
                   font=pf, fill=NAVY)
-        tag_chip(draw, x + card_w - 62, ty - 1, story["tag"])
+        tag_chip(draw, x + cw - 62, ty - 1, story["tag"])
         ty += 13
         hlines = fit_lines(draw, story["headline"], font(SANS_BOLD, 12),
-                           card_w - 12, 2)
+                           cw - 12, 2)
         ty = text_block(draw, tx, ty, hlines, font(SANS_BOLD, 12), INK, 13.5)
         dlines = fit_lines(draw, story["deck"], font(SANS, 10),
-                           card_w - 12, 2)
+                           cw - 12, 2)
         ty = text_block(draw, tx, ty + 1, dlines, font(SANS, 10), GREY, 11)
         draw.text((tx, y + card_h - 13), story["source"],
                   font=font(SANS, 8.5), fill=GREY)
@@ -1208,7 +1216,7 @@ def build_page():
 
     # --- where it happened + date check -----------------------------------
     # Map on the left, DATE CHECK on the right at the same height, so
-    # the 43 briefs below get a full-width four-column band of their own.
+    # the 43 briefs below get a full-width five-column band of their own.
     draw.text((MX, bottom_y + 6), "WHERE IT HAPPENED",
               font=font(SERIF_BOLD, 13), fill=NAVY)
     draw.text((MX + 338, bottom_y + 6), "DATE CHECK",
@@ -1234,8 +1242,9 @@ def build_page():
                INK, 13)
 
     # --- also on sunday: 43 more stories in five columns ------------------
-    # Five columns of nine rows (the last row holds three); each brief
-    # is one short fact in at most two lines, the red number leading.
+    # Five columns of nine rows; the last row holds three briefs in
+    # three wide cells, so no cell sits empty. Each brief is one short
+    # fact in at most two lines, the red number leading.
     # Rows run at 22 px: two 9-pt lines at 10 px leading fill 21 px,
     # so the next row starts 1 px clear of the descenders. Four
     # columns at 10 pt could not hold the band: two lines need 22 px
@@ -1249,14 +1258,17 @@ def build_page():
     for i, (num, place, text, src, _reg) in enumerate(BRIEFS):
         col = i % 5
         row = i // 5
-        x = bx0 + col * (col_w + 8)
+        # Last row holds only three briefs (53-55): run them as three
+        # wide cells across the full band so no cell sits empty.
+        cw = col_w if row < 8 else (CW - 2 * 8) // 3
+        x = bx0 + col * (cw + 8)
         y = briefs_y + row * 22
         nf = font(SANS_BOLD, 9)
         num_txt = "%d." % num
         nw = draw.textlength(num_txt + " ", font=nf)
         draw.text((x, y), num_txt, font=nf, fill=RED)
         body = "%s: %s (%s)" % (place, text, src)
-        lines = fit_lines(draw, body, font(SANS, 9), col_w - 6 - nw, 2)
+        lines = fit_lines(draw, body, font(SANS, 9), cw - 6 - nw, 2)
         text_block(draw, x + nw, y, lines, font(SANS, 9), INK, 10)
 
     # --- footer ------------------------------------------------------------------
