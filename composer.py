@@ -1,15 +1,15 @@
 """Compose the 22 November 2026 one-page newspaper image.
 
 Draws a dense broadsheet front page (1024x1024) from the two hero
-photos in assets/ plus text drawn in code. Deterministic: no clock,
-no randomness, no network. Requires Pillow; main.py falls back to
-the prebuilt image when Pillow is missing.
+photos and a NASA Blue Marble Earth texture in assets/, plus text
+drawn in code. Deterministic: no clock, no randomness, no network.
+Requires Pillow; main.py falls back to the prebuilt image when
+Pillow is missing.
 """
 
 import os
-import random
 
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 
 W, H = 1024, 1024
 MX = 28  # side margin
@@ -191,156 +191,9 @@ ICONS = [icon_quake, icon_missile, icon_quote, icon_eye, icon_border,
 
 
 # ------------------------------------------------------------------- map
-# Simplified continent outlines as (lon, lat) points, equirectangular.
-
-CONTINENTS = [
-    # North America: Alaska, Arctic coast with a Hudson Bay dent,
-    # Labrador, Florida, Gulf coast, Mexico, Central America.
-    [(-168, 66), (-163, 60), (-156, 58), (-149, 60), (-142, 60),
-     (-136, 58), (-131, 55), (-127, 51), (-124, 44), (-121, 36),
-     (-116, 31), (-112, 28), (-109, 24), (-106, 21), (-101, 18),
-     (-95, 18), (-91, 15), (-87, 13), (-83, 9), (-79, 9), (-80, 13),
-     (-84, 16), (-87, 21), (-90, 21), (-91, 19), (-96, 19), (-97, 24),
-     (-94, 29), (-90, 30), (-85, 30), (-82, 28), (-80, 26), (-80, 31),
-     (-76, 35), (-75, 38), (-73, 41), (-70, 42), (-68, 44), (-65, 44),
-     (-60, 46), (-56, 50), (-59, 54), (-62, 57), (-66, 59), (-70, 61),
-     (-76, 62), (-80, 63), (-83, 58), (-85, 56), (-88, 58), (-91, 61),
-     (-94, 65), (-98, 67), (-105, 68), (-115, 69), (-125, 70),
-     (-135, 69), (-148, 70), (-158, 71), (-165, 69)],
-    # Greenland
-    [(-46, 60), (-42, 64), (-36, 66), (-30, 68), (-24, 70), (-20, 73),
-     (-25, 76), (-32, 77), (-42, 78), (-52, 77), (-58, 75), (-57, 71),
-     (-54, 67), (-50, 63)],
-    # South America: Caribbean coast, Brazilian bulge, taper to the south.
-    [(-77, 7), (-74, 10), (-70, 11), (-64, 10), (-59, 8), (-54, 6),
-     (-51, 4), (-50, 0), (-46, -2), (-41, -4), (-36, -7), (-35, -9),
-     (-37, -12), (-39, -16), (-40, -20), (-42, -23), (-46, -25),
-     (-49, -28), (-52, -32), (-55, -35), (-58, -38), (-62, -40),
-     (-65, -43), (-67, -47), (-69, -50), (-70, -53), (-72, -54),
-     (-73, -50), (-73, -45), (-73, -40), (-72, -35), (-71, -30),
-     (-70, -25), (-70, -20), (-73, -16), (-76, -13), (-79, -8),
-     (-81, -5), (-81, -1), (-80, 2), (-78, 5)],
-    # Africa: west bulge, Mediterranean coast, Horn, southern taper.
-    [(-17, 15), (-16, 19), (-15, 23), (-14, 27), (-11, 30), (-7, 33),
-     (-4, 35), (0, 36), (5, 37), (9, 37), (11, 34), (15, 32), (19, 32),
-     (23, 32), (27, 31), (30, 31), (32, 31), (34, 28), (36, 25),
-     (37, 22), (38, 19), (40, 16), (41, 13), (43, 12), (46, 11),
-     (48, 11), (51, 11), (51, 8), (50, 4), (48, 0), (46, -3), (43, -7),
-     (40, -10), (39, -14), (37, -18), (35, -21), (34, -25), (32, -28),
-     (30, -31), (27, -33), (23, -34), (19, -35), (17, -33), (15, -30),
-     (14, -26), (13, -22), (12, -18), (12, -14), (12, -10), (12, -6),
-     (10, -2), (9, 1), (9, 4), (6, 4), (3, 6), (-1, 5), (-5, 5),
-     (-8, 4), (-11, 6), (-13, 8), (-15, 11)],
-    # Madagascar
-    [(44, -16), (46, -15), (49, -16), (50, -18), (49, -21), (47, -24),
-     (45, -25), (43, -22), (43, -19)],
-    # Europe: Iberia, Brittany, Low Countries, Jutland, Norway, North
-    # Cape, down the Russian west to the Caucasus, Black Sea north
-    # coast, Greece, Adriatic, the Italian boot, back along the Med.
-    [(-9, 37), (-9, 41), (-9, 43), (-5, 44), (-2, 44), (-2, 47),
-     (-1, 49), (0, 50), (2, 51), (4, 52), (6, 54), (8, 55), (8, 57),
-     (10, 58), (8, 59), (6, 60), (5, 61), (6, 62), (8, 63), (11, 65),
-     (13, 67), (16, 68), (19, 70), (23, 71), (27, 71), (30, 70),
-     (31, 69), (32, 67), (33, 65), (34, 63), (35, 61), (36, 59),
-     (38, 57), (40, 55), (42, 53), (43, 51), (44, 49), (43, 47),
-     (41, 45), (39, 47), (36, 46), (33, 46), (30, 46), (28, 44),
-     (27, 42), (26, 40), (24, 39), (23, 37), (22, 38), (21, 39),
-     (20, 41), (19, 42), (18, 44), (16, 44), (14, 45), (15, 43),
-     (16, 42), (17, 41), (18, 40), (17, 39), (16, 38), (15, 39),
-     (15, 41), (14, 42), (13, 44), (11, 44), (9, 44), (7, 44), (6, 43),
-     (4, 43), (3, 42), (2, 41), (0, 39), (-1, 38), (-3, 37), (-5, 36),
-     (-7, 36)],
-    # United Kingdom
-    [(-5, 50), (-4, 52), (-5, 54), (-4, 56), (-3, 58), (-1, 57),
-     (0, 54), (1, 52), (0, 50)],
-    # Ireland
-    [(-10, 52), (-9, 54), (-7, 55), (-6, 54), (-6, 52), (-8, 51)],
-    # Sicily
-    [(12, 37), (14, 38), (15, 37), (13, 36)],
-    # Asia: Turkey, Caucasus, Siberia, Chukotka, Pacific coast with
-    # Korea, south China coast, Vietnam, Malay peninsula spike,
-    # Myanmar, the Indian triangle, Arabia, Red Sea, Levant.
-    [(28, 41), (30, 41), (33, 42), (36, 42), (39, 41), (41, 41),
-     (43, 43), (45, 45), (47, 46), (49, 47), (51, 49), (54, 51),
-     (57, 53), (60, 55), (63, 57), (66, 59), (68, 61), (68, 65),
-     (69, 68), (71, 71), (74, 73), (78, 73), (82, 74), (87, 75),
-     (92, 75), (97, 76), (102, 76), (107, 75), (112, 74), (117, 73),
-     (122, 73), (127, 72), (132, 72), (137, 72), (142, 72), (147, 71),
-     (152, 70), (157, 70), (162, 69), (167, 68), (172, 67), (177, 66),
-     (178, 65), (178, 63), (175, 62), (170, 60), (166, 59), (162, 57),
-     (158, 53), (156, 52), (152, 50), (148, 49), (144, 48), (141, 46),
-     (140, 43), (138, 40), (136, 37), (134, 35), (132, 34), (130, 33),
-     (128, 34), (127, 36), (129, 38), (127, 40), (125, 40), (123, 39),
-     (121, 38), (120, 35), (121, 32), (120, 29), (119, 26), (117, 24),
-     (115, 23), (113, 22), (111, 21), (109, 20), (108, 18), (107, 16),
-     (109, 13), (109, 11), (107, 10), (105, 9), (104, 9), (103, 8),
-     (102, 6), (101, 4), (100, 2), (99, 4), (99, 7), (98, 10), (98, 12),
-     (97, 14), (96, 15), (95, 16), (94, 17), (93, 19), (92, 21),
-     (91, 22), (89, 22), (87, 21), (85, 19), (83, 17), (81, 15),
-     (80, 12), (80, 10), (78, 8), (77, 9), (76, 11), (74, 14), (73, 16),
-     (72, 19), (71, 20), (69, 22), (67, 24), (65, 25), (63, 25),
-     (61, 25), (59, 26), (57, 26), (55, 27), (53, 27), (51, 28),
-     (49, 29), (48, 30), (50, 28), (52, 26), (54, 25), (56, 24),
-     (58, 23), (59, 22), (58, 20), (56, 18), (54, 16), (52, 15),
-     (50, 14), (48, 14), (45, 13), (43, 12), (42, 14), (41, 16),
-     (40, 19), (39, 22), (38, 25), (37, 28), (36, 30), (35, 32),
-     (34, 34), (34, 36), (32, 36), (30, 36), (28, 37), (27, 39),
-     (27, 41)],
-    # Australia: west coast, Great Australian Bight, east coast, Cape York.
-    [(113, -22), (114, -28), (115, -32), (115, -35), (118, -35),
-     (121, -34), (124, -33), (127, -32), (129, -32), (132, -32),
-     (134, -33), (136, -35), (137, -35), (139, -37), (140, -38),
-     (144, -38), (146, -39), (148, -38), (150, -37), (151, -35),
-     (153, -32), (153, -29), (153, -26), (152, -24), (150, -22),
-     (148, -20), (146, -19), (144, -17), (142, -14), (142, -11),
-     (141, -13), (139, -15), (137, -13), (136, -12), (134, -12),
-     (132, -12), (130, -13), (128, -14), (126, -14), (124, -16),
-     (122, -17), (120, -19), (117, -20), (115, -21)],
-    # Tasmania
-    [(145, -41), (147, -41), (148, -42), (147, -43), (146, -43),
-     (145, -42)],
-    # New Zealand
-    [(167, -45), (169, -43), (171, -42), (173, -41), (174, -39),
-     (176, -38), (177, -38), (175, -40), (173, -41), (171, -43),
-     (169, -45), (167, -46)],
-    # Japan: Honshu
-    [(129, 31), (131, 33), (133, 34), (135, 34), (137, 35), (139, 35),
-     (140, 37), (141, 39), (141, 41), (140, 40), (138, 38), (136, 37),
-     (134, 35), (132, 34), (130, 32)],
-    # Japan: Hokkaido
-    [(140, 42), (142, 42), (144, 43), (145, 44), (143, 44), (141, 43)],
-    # Sumatra
-    [(95, 5), (97, 4), (99, 2), (101, 0), (103, -2), (105, -4),
-     (106, -6), (104, -5), (102, -3), (100, -1), (98, 1), (96, 4)],
-    # Borneo
-    [(109, 1), (111, 2), (113, 4), (116, 6), (118, 4), (119, 1),
-     (118, -1), (117, -3), (115, -4), (113, -3), (111, -1), (109, 0)],
-    # Java
-    [(105, -6), (107, -7), (109, -7), (111, -7), (113, -7), (114, -8),
-     (112, -8), (110, -8), (108, -7), (106, -7)],
-    # New Guinea
-    [(131, -1), (133, -2), (136, -2), (138, -3), (140, -3), (141, -4),
-     (141, -7), (139, -8), (137, -7), (135, -5), (133, -3), (131, -2)],
-    # Sulawesi
-    [(119, 0), (121, 1), (120, -1), (119, -3), (120, -5), (121, -3)],
-    # Philippines
-    [(120, 18), (122, 18), (122, 16), (121, 14), (122, 12), (123, 11),
-     (122, 9), (121, 7), (122, 6), (123, 8), (124, 10), (125, 9),
-     (126, 7), (125, 5)],
-]
-
-# Inland seas cut back into the land after the continents are drawn.
-INLAND_SEAS = [
-    # Baltic Sea
-    [(12, 55), (14, 57), (17, 59), (20, 61), (22, 63), (24, 65),
-     (23, 63), (21, 61), (19, 59), (16, 57), (13, 55)],
-    # Caspian Sea
-    [(47, 42), (49, 40), (51, 41), (52, 43), (51, 46), (49, 47),
-     (47, 45)],
-    # Great Lakes
-    [(-87, 42), (-85, 42), (-83, 43), (-81, 44), (-83, 46),
-     (-86, 46), (-88, 45)],
-]
+# The map no longer draws continents from outlines: it pastes a
+# real satellite photo (NASA Blue Marble, assets/earth_texture.jpg).
+# The outline data lived here until the photo replaced it.
 
 # Story number -> (lon, lat, nudge_x, nudge_y) for the map dots.
 # No nudges. The true places cluster too tightly for legible numbered
@@ -364,185 +217,78 @@ DOTS = [
 
 
 def draw_map(draw, page, x0, y0, w, h):
-    """World map with numbered dots 1-10 for the big stories.
+    """World map: a real satellite photo of Earth, not a drawn map.
 
-    Printed-atlas look: a deep blue ocean that lightens over the
-    continental shelf near the coasts and darkens toward the open
-    sea and the frame edges, terrain-coloured land (green lowlands,
-    tan arid belts, darker boreal north) with soft hill-shading
-    from the upper left, a faint drop shadow under each continent
-    so the land reads as raised above the sea, and a very subtle
-    graticule. Equirectangular, with a margin around the inhabited
-    latitudes so no dot touches the frame. The map is rendered
-    supersampled and downscaled so the dense coastlines stay
-    smooth; inland seas are cut back in after the land, and the
-    numbered dots are drawn last, crisp, on top of the shading.
+    Pastes a crop of the NASA Blue Marble Next Generation
+    equirectangular texture (assets/earth_texture.jpg, public
+    domain) into the map frame, then mutes and warms it so the
+    blues and greens sit with the cream paper instead of popping
+    against it. The numbered dots 1-10 are drawn crisp on top.
+    Equirectangular, same lon/lat window as before, so every dot
+    stays on land at its current place; the frame geometry and the
+    heading gap above it are unchanged. Rendered supersampled and
+    downscaled so the photo stays smooth.
     """
-    SS = 3  # supersample factor: coastlines stay smooth at 300x92
+    SS = 3  # supersample factor: the photo stays smooth at 300x92
     Wm, Hm = w * SS, h * SS
     lon0, lon1 = -175.0, 185.0
     lat0, lat1 = 84.0, -62.0
-
-    def px(lon, lat):
-        return ((lon - lon0) / (lon1 - lon0) * Wm,
-                (lat0 - lat) / (lat0 - lat1) * Hm)
 
     def fpx(lon, lat):
         return (x0 + (lon - lon0) / (lon1 - lon0) * w,
                 y0 + (lat0 - lat) / (lat0 - lat1) * h)
 
-    polys = [[px(lon, lat) for lon, lat in poly] for poly in CONTINENTS]
-    seas = [[px(lon, lat) for lon, lat in sea] for sea in INLAND_SEAS]
-    blank = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
+    # --- crop the photo to the map window ----------------------------
+    # The texture spans lon -180..180, lat 90..-90, 4 px per degree.
+    # The window runs 5 deg past the antimeridian, so it is two
+    # strips: lon -175..180, then the wrapped lon -180..-175.
+    tex = Image.open(os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "assets", "earth_texture.jpg")).convert("RGB")
+    TW, TH = tex.size
 
-    # --- ocean: deep blue gradient, darker toward the open sea -------
-    ocean = Image.new("RGB", (Wm, Hm))
-    od = ImageDraw.Draw(ocean)
-    top = (36, 88, 142)
-    mid = (23, 64, 114)
-    bot = (13, 40, 82)
-    for yy in range(Hm):
-        t = yy / max(Hm - 1, 1)
-        if t < 0.5:
-            c = tuple(int(top[i] + (mid[i] - top[i]) * t * 2)
-                      for i in range(3))
-        else:
-            c = tuple(int(mid[i] + (bot[i] - mid[i]) * (t - 0.5) * 2)
-                      for i in range(3))
-        od.line([(0, yy), (Wm, yy)], fill=c)
+    def tx(lon):
+        return (lon + 180.0) / 360.0 * TW
 
-    # --- land mask, and the continental shelf glowing around it ------
-    mask = Image.new("L", (Wm, Hm), 0)
-    md = ImageDraw.Draw(mask)
-    for pts in polys:
-        md.polygon(pts, fill=255)
-    shelf = mask.filter(ImageFilter.GaussianBlur(SS * 4))
-    shelf_rgb = Image.new("RGB", (Wm, Hm), (74, 130, 174))
-    ocean = Image.composite(shelf_rgb, ocean,
-                            shelf.point(lambda v: v * 3 // 4))
-    ocean = ocean.convert("RGBA")
+    def ty(lat):
+        return (90.0 - lat) / 180.0 * TH
 
-    # --- graticule: very faint, ocean only ---------------------------
-    grat = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
-    gd = ImageDraw.Draw(grat)
-    for lon in range(-150, 181, 30):
-        gx = (lon - lon0) / (lon1 - lon0) * Wm
-        gd.line([(gx, 0), (gx, Hm)], fill=(170, 200, 228, 44), width=1)
-    for lat in range(-50, 71, 25):
-        gy = (lat0 - lat) / (lat0 - lat1) * Hm
-        gd.line([(0, gy), (Wm, gy)], fill=(170, 200, 228, 44), width=1)
-    ocean = Image.alpha_composite(ocean, grat)
+    y_top = int(round(ty(lat0)))
+    y_bot = int(round(ty(lat1)))
+    x_cut = int(round(tx(lon0)))
+    left = tex.crop((x_cut, y_top, TW, y_bot))
+    right = tex.crop((0, y_top, x_cut, y_bot))
+    strip = Image.new("RGB", (TW, y_bot - y_top))
+    strip.paste(left, (0, 0))
+    strip.paste(right, (left.size[0], 0))
+    map_img = strip.resize((Wm, Hm), Image.LANCZOS)
 
-    # --- land layer: drop shadow (lower right), rim light (upper left)
-    land = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
-    shadow = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
-    sd = ImageDraw.Draw(shadow)
-    for pts in polys:
-        sd.polygon([(x + 2 * SS, y + 3 * SS) for x, y in pts],
-                   fill=(8, 24, 52, 135))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(SS * 1.5))
-    land = Image.alpha_composite(land, shadow)
-    rim = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
-    rd = ImageDraw.Draw(rim)
-    for pts in polys:
-        rd.polygon([(x - 2 * SS, y - 2 * SS) for x, y in pts],
-                   fill=(255, 244, 214, 70))
-    rim = rim.filter(ImageFilter.GaussianBlur(SS * 1.2))
-    land = Image.alpha_composite(land, rim)
+    # --- mute the palette toward the paper ----------------------------
+    # Desaturate the blues and greens just a little, then wash the
+    # whole photo slightly toward the paper tone so it stops popping.
+    map_img = ImageEnhance.Color(map_img).enhance(0.88)
+    map_img = ImageEnhance.Contrast(map_img).enhance(1.03)
+    map_img = ImageEnhance.Brightness(map_img).enhance(1.02)
+    map_img = Image.blend(map_img,
+                          Image.new("RGB", (Wm, Hm), PAPER), 0.05)
 
-    # --- base land fill: mid green, deep enough to hold the tints -----
-    ld = ImageDraw.Draw(land)
-    for pts in polys:
-        ld.polygon(pts, fill=(140, 162, 104, 255))
-
-    def clip(layer):
-        """Keep a full-frame overlay only where land is."""
-        return Image.composite(layer, blank, mask)
-
-    def tint_band(lat_a, lat_b, color, alpha):
-        """Soft horizontal terrain tint between two latitudes."""
-        layer = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
-        td = ImageDraw.Draw(layer)
-        _, ya = px(0, lat_a)
-        _, yb = px(0, lat_b)
-        td.rectangle([0, min(ya, yb), Wm, max(ya, yb)],
-                     fill=color + (alpha,))
-        return layer.filter(ImageFilter.GaussianBlur(SS * 2))
-
-    # Arid belts tan, tropics lush green, far north darker boreal.
-    land = Image.alpha_composite(land, clip(tint_band(14, 31,
-                                 (198, 172, 120), 60)))
-    land = Image.alpha_composite(land, clip(tint_band(-30, -13,
-                                 (198, 172, 120), 55)))
-    land = Image.alpha_composite(land, clip(tint_band(-12, 12,
-                                 (88, 138, 78), 95)))
-    land = Image.alpha_composite(land, clip(tint_band(58, 84,
-                                 (104, 124, 94), 70)))
-
-    # --- high ground: soft brown blotches on the great ranges ---------
-    peaks = [(-72, -18, 6, 12), (-112, 44, 8, 7), (84, 30, 10, 5),
-             (10, 46, 5, 3), (-6, 31, 5, 3), (37, 2, 6, 6),
-             (-105, 38, 7, 6)]
-    mlayer = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
-    md2 = ImageDraw.Draw(mlayer)
-    for lon, lat, rx, ry in peaks:
-        cx, cy = px(lon, lat)
-        md2.ellipse([cx - rx * SS, cy - ry * SS,
-                     cx + rx * SS, cy + ry * SS],
-                    fill=(148, 126, 90, 110))
-    mlayer = mlayer.filter(ImageFilter.GaussianBlur(SS * 3))
-    land = Image.alpha_composite(land, clip(mlayer))
-
-    # --- grain: deterministic speckles so no expanse stays flat -------
-    rng = random.Random(20261122)
-    sp = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
-    spd = ImageDraw.Draw(sp)
-    mpx = mask.load()
-    tones = [(255, 255, 240, 34), (60, 70, 40, 34),
-             (210, 190, 140, 32), (90, 110, 70, 32)]
-    for _ in range(3200):
-        x = rng.randrange(Wm)
-        y = rng.randrange(Hm)
-        if mpx[x, y]:
-            r = rng.choice([1, 1, 2])
-            spd.ellipse([x - r, y - r, x + r, y + r],
-                        fill=rng.choice(tones))
-    sp = sp.filter(ImageFilter.GaussianBlur(0.6))
-    land = Image.alpha_composite(land, sp)
-
-    # --- hill-shading: light from the upper left ----------------------
-    grad = Image.new("L", (24, 24))
-    grad.putdata([int(255 * (1 - 0.45 * ((x / 23 + y / 23) / 2)))
-                  for y in range(24) for x in range(24)])
-    grad = grad.resize((Wm, Hm), Image.BICUBIC)
-    light = Image.new("RGBA", (Wm, Hm), (255, 250, 230, 0))
-    light.putalpha(grad.point(lambda v: (v - 140) * 18 // 115))
-    land = Image.alpha_composite(land, clip(light))
-    shade = Image.new("RGBA", (Wm, Hm), (10, 20, 44, 0))
-    shade.putalpha(grad.point(lambda v: (255 - v) * 26 // 115))
-    land = Image.alpha_composite(land, clip(shade))
-
-    # --- coastline stroke, then inland seas cut back in ---------------
-    for pts in polys:
-        ld.line(pts + [pts[0]], fill=(58, 68, 48, 255), width=SS)
-    for pts in seas:
-        ld.polygon(pts, fill=(56, 108, 156, 255))
-        ld.line(pts + [pts[0]], fill=(44, 84, 128, 255), width=SS)
-
-    # --- compose, vignette, downscale ---------------------------------
-    map_img = Image.alpha_composite(ocean, land)
+    # --- warm vignette: the ocean drifts toward the paper at edges ---
+    # Kept tight to the frame and light: just a kiss of paper tone
+    # at the very edge, so the photo stays crisp to the border.
     vig = Image.new("L", (Wm, Hm), 0)
     vd = ImageDraw.Draw(vig)
-    vd.rectangle([SS * 10, SS * 8, Wm - SS * 10, Hm - SS * 8], fill=255)
-    vig = vig.filter(ImageFilter.GaussianBlur(SS * 12))
-    dark = Image.new("RGBA", (Wm, Hm), (6, 14, 34, 255))
-    dark.putalpha(vig.point(lambda v: (255 - v) * 70 // 255))
-    map_img = Image.alpha_composite(map_img, dark)
-    map_img = map_img.convert("RGB").resize((w, h), Image.LANCZOS)
+    vd.rectangle([SS * 6, SS * 5, Wm - SS * 6, Hm - SS * 5], fill=255)
+    vig = vig.filter(ImageFilter.GaussianBlur(SS * 5))
+    warm = Image.new("RGB", (Wm, Hm), PAPER)
+    edge = vig.point(lambda v: (255 - v) * 45 // 255)
+    map_img = Image.composite(warm, map_img, edge)
+
+    # --- downscale, paste, frame --------------------------------------
+    map_img = map_img.resize((w, h), Image.LANCZOS)
     page.paste(map_img, (x0, y0))
     draw.rectangle([x0, y0, x0 + w, y0 + h], outline=RULE, width=1)
 
-    # --- dots: crisp, on top of all shading ---------------------------
+    # --- dots: crisp, on top of the photo -----------------------------
     for num, lon, lat, nx, ny in DOTS:
         cx, cy = fpx(lon, lat)
         cx += nx
