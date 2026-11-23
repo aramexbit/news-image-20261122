@@ -1,0 +1,9 @@
+# Build outputs and local check artefacts stay out of the repository.
+# out1/ and out2/ hold the two determinism-check runs; out/ is the
+# default output directory main.py writes to. Nothing else is ignored.
+out/
+out1/
+out2/
+__pycache__/
+*.pyc
+
