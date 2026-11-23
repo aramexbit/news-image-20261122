@@ -4,8 +4,8 @@ Draws a dense one-page newspaper image (1024x1024) for Sunday
 22 November 2026, following the layout the day's winning entries
 share: a giant date masthead with a stats line, THE DAY IN UTC and
 THE DAY IN NUMBERS strips, a region strip, three big leads with flat
-drawn illustrations, THE DAY IN TEN, a flat world map with numbered
-pins, briefs numbered on from the ten, a DATE CHECK box and a footer
+drawn illustrations, THE DAY IN NINE, a flat world map with numbered
+pins, briefs numbered on from the nine, a DATE CHECK box and a footer
 with sources and a verification-tag legend.
 
 Every scene is drawn in code (flat geometric illustration, no photos,
@@ -14,14 +14,28 @@ Requires Pillow to draw; when Pillow is missing it copies the
 prebuilt render in assets/ instead, so two runs always write
 identical bytes.
 
-v4 keeps v3's layout and only swaps the stories: 34 stories, every
-one verified as having happened or first been reported on Sunday
-22 November 2026 by an outside fact-check, plus three football
-results verified directly on FBref. COP31 is gone entirely
-(its figures could not be verified); the Dymer casualty detail, the
-Saturday sport results and the other wrong-date stories are gone too.
-The 21 briefs run in four columns under the map; the DATE CHECK box
-sits beside the map so the page still fits on one screen.
+v4 keeps v3's layout and only swaps the stories: 55 stories, every
+one verified as having happened on Sunday 22 November 2026 — most
+by an outside fact-check, three football results directly on FBref,
+and the rest directly on Google by the parent. COP31 is back as one
+brief — the collapse, without the unverified 35% and $120bn figures;
+the Dymer casualty detail, the Saturday sport results and the other
+wrong-date stories are gone, as are the five stories that only
+qualified through their report date (BepiColombo, the France
+protests, the Red Cross warning, Kraftwerk Berlin and the Seattle
+ICE protests). The 43 briefs run in five columns of nine rows under
+the map, at 9 pt; the DATE CHECK box sits beside the map so the page
+still fits. The thirteen briefs added last (43-55) come from the One Turn archive
+for 22 November, each checked on Google and then by an outside
+fact-check: Dymer is written with Reuters' corrected figures
+(~10 trapped, 3 dead), the Bangladesh brief carries no wage figure
+(unverified), and the Trump-Iran brief quotes the interview while
+the 14 tankers stay a reported background figure. The layout is
+compressed a little to hold the extra briefs: shorter lead art,
+tighter cards with 26-pixel pictogram strips, and the five-column
+brief band — four columns at 10 pt could not hold the band, because
+two-line briefs need 22 px rows and eleven rows would run past the
+footer, so the longest briefs were trimmed to fit two lines.
 """
 
 import os
@@ -158,10 +172,10 @@ def fit_font(draw, text, path, size, max_w):
 
 
 # ------------------------------------------------------------------ data
-# Stories 1-3 are the leads; 4-13 are THE DAY IN TEN; 14-34 are the
-# briefs. Every story happened or was first reported on Sunday
-# 22 November 2026. Region counts: Europe 13, Middle East 4,
-# Asia-Pacific 4, Americas 11, Africa 1, Oceania 1 = 34 stories.
+# Stories 1-3 are the leads; 4-12 are THE DAY IN NINE; 13-55 are the
+# briefs. Every story happened on Sunday 22 November 2026. Region
+# counts: Europe 17, Middle East 7, Asia-Pacific 7, Americas 19,
+# Africa 4, Oceania 1 = 55 stories.
 
 LEADS = [
     {
@@ -169,8 +183,8 @@ LEADS = [
         "place": "KYIV REGION, UKRAINE", "beat": "WAR",
         "tag": "REPORTED",
         "headline": "Russia fires 186 drones at Ukraine overnight; 161 downed",
-        "deck": ("161 of 186 drones fired overnight were downed or jammed. "
-                 "72 were jet-powered, 56 of them among those downed."),
+        "deck": ("161 of 186 drones downed or jammed; 72 jet-powered, "
+                 "56 of them downed."),
         "source": "Ukrainian Air Force via Reuters, BBC",
         "art": "drones",
     },
@@ -221,70 +235,118 @@ TEN = [
      "headline": "Nepal PM Shah lands in India",
      "deck": "Balendra Shah arrives in New Delhi, meets minister Jaishankar.",
      "source": "Nepal Foreign Ministry", "art": "nepal"},
-    {"num": 10, "place": "MERCURY", "beat": "SPACE", "tag": "REPORTED",
-     "headline": "BepiColombo's Mercury capture reported",
-     "deck": "Capture and thruster glitch reported Sunday; orbit entry Sat.",
-     "source": "Reuters, ESA", "art": "mercury"},
-    {"num": 11, "place": "VATICAN CITY", "beat": "FAITH", "tag": "CONFIRMED",
+    {"num": 10, "place": "VATICAN CITY", "beat": "FAITH", "tag": "CONFIRMED",
      "headline": "Pope shares lunch with 1,300 poor",
      "deck": "Leo XIV hosts about 1,300 people in need in the Paul VI hall.",
      "source": "Vatican News", "art": "pope"},
-    {"num": 12, "place": "TURIN", "beat": "TENNIS", "tag": "CONFIRMED",
+    {"num": 11, "place": "TURIN", "beat": "TENNIS", "tag": "CONFIRMED",
      "headline": "Alcaraz wins his first ATP Finals",
      "deck": "Beats Zverev 6-2, 7-6(7) to take the title in Turin.",
      "source": "ATP", "art": "tennis"},
-    {"num": 13, "place": "CANBERRA", "beat": "DEFENCE", "tag": "REPORTED",
+    {"num": 12, "place": "CANBERRA", "beat": "DEFENCE", "tag": "REPORTED",
      "headline": "Marles says US budget office got AUKUS wrong",
      "deck": "Australia's defence minister criticises the CBO assessment.",
      "source": "Reuters", "art": "mic"},
 ]
 
-# Briefs 14-34. Each body is kept to two lines in the four-column
+# Briefs 13-55. Each body is kept to two lines in the four-column
 # grid: place, one short fact, source. Football first (FBref, then
-# Serie A), then the NFL and NBA Sundays, then SpaceX, France, Ghana.
+# Serie A), then the NFL and NBA Sundays, then SpaceX and Ghana,
+# then ten more the parent verified on Google: COP31, the Benghazi
+# and Khartoum attacks, Kenya, US politics, the West Bank and the
+# Amish measles outbreak. The last thirteen (43-55) are the One Turn
+# archive additions, each verified on Google and then by an outside
+# fact-check: Dymer with Reuters' corrected figures, the Trump-Iran
+# interview, the Istanbul march, May on Brexit, Shuri Castle, the
+# Sunday Gaza strikes, the Gazipur garment protest, the Golden Horse
+# Awards, Ateez, Thitikul, Skubal, Marquez and Price.
 BRIEFS = [
-    (14, "Riyadh", "Saudi Arabia intercepts a Houthi drone aimed at Riyadh.",
+    (13, "Riyadh", "Saudi intercepts a Houthi drone aimed at Riyadh.",
      "Wires", "ME"),
-    (15, "Seoul", "Education minister Choi quits in AI exam row.",
+    (14, "Seoul", "Education minister Choi quits in AI exam row.",
      "Yonhap", "APAC"),
-    (16, "Turin", "Arribage/Olivetti win doubles final 3-6, 7-6(2), 10-6.",
+    (15, "Turin", "Arribage/Olivetti win doubles final 3-6, 7-6(2), 10-6.",
      "ATP", "EU"),
-    (17, "Jerusalem", "Eisenkot-Likud talks resume; invite Sat.",
+    (16, "Jerusalem", "Eisenkot-Likud talks resume; invite Sat.",
      "Times of Israel", "ME"),
-    (18, "Liverpool", "4-0 Man Utd at Anfield, ref Barrott.",
+    (17, "Liverpool", "4-0 Man Utd at Anfield, ref Barrott.",
      "FBref", "EU"),
-    (19, "Barcelona", "3-2 Villarreal, 59,034; goals 5', 7', 57', 61', 67'.",
+    (18, "Barcelona", "3-2 Villarreal, 59,034; goals 5', 7', 57', 61', 67'.",
      "FBref", "EU"),
-    (20, "Hull", "2-0 Brighton, McBurnie 2 late goals; 24,461, ref Bankes.",
+    (19, "Hull", "2-0 Brighton, McBurnie 2 late goals; 24,461, ref Bankes.",
      "FBref", "EU"),
-    (21, "Bergamo", "Atalanta 4-4 Inter; Esposito hat-trick 16', 32', 52'.",
+    (20, "Bergamo", "Atalanta 4-4 Inter; Esposito hat-trick.",
      "Wires", "EU"),
-    (22, "Milan", "AC Milan 5-1 Frosinone.",
+    (21, "Milan", "AC Milan 5-1 Frosinone.",
      "Wires", "EU"),
-    (23, "Turin", "Juventus 4-0 Venezia.",
+    (22, "Turin", "Juventus 4-0 Venezia.",
      "Wires", "EU"),
-    (24, "Dallas", "51-30 Titans; Prescott 325 yds, 4 pass TDs, 1 rush.",
+    (23, "Dallas", "51-30 Titans; Prescott 325 yds, 4 pass TDs, 1 rush.",
      "Reuters", "AM"),
-    (25, "Detroit", "Lions 31-21 Buccaneers; Gibbs 2 TD.",
+    (24, "Detroit", "Lions 31-21 Buccaneers; Gibbs 2 TD.",
      "Reuters", "AM"),
-    (26, "Kansas City", "Chiefs 34-7 Cardinals.",
+    (25, "Kansas City", "Chiefs 34-7 Cardinals.",
      "Reuters", "AM"),
-    (27, "San Francisco", "49ers 35-10 Vikings; Purdy 3 TD, 49ers 9-1.",
+    (26, "San Francisco", "49ers 35-10 Vikings; Purdy 3 TD, 49ers 9-1.",
      "Reuters", "AM"),
-    (28, "New York", "Knicks 113-106 Pacers; Hart 10/11/10, Towns 30/13.",
+    (27, "New York", "Knicks 113-106 Pacers; Hart 10/11/10.",
      "Reuters", "AM"),
-    (29, "Denver", "Nuggets 151-145 Bulls OT; Murray 45, Jokic 37/18/11.",
+    (28, "Denver", "Nuggets 151-145 Bulls OT; Murray 45, Jokic 37.",
      "Reuters", "AM"),
-    (30, "Miami", "123-113 Thunder; Adebayo 24/15/12, 7th straight win.",
+    (29, "Miami", "123-113 Thunder; Adebayo 24/15/12.",
      "Reuters", "AM"),
-    (31, "Boston", "Warriors 88-87 Celtics.",
+    (30, "Boston", "Warriors 88-87 Celtics.",
      "Reuters", "AM"),
-    (32, "Vandenberg", "Falcon 9 lifts NROL-136 at 12:23:56 UTC.",
+    (31, "Vandenberg", "Falcon 9 lifts NROL-136 at 12:23 UTC.",
      "SpaceX", "AM"),
-    (33, "Paris", "Sat protest, first reported Sun; 82,500, 150k claimed.",
-     "AFP", "EU"),
-    (34, "Accra", "Ghana 1-0 Morocco, Amputee World Cup final; Opentil 32'.",
+    (32, "Accra", "Ghana 1-0 Morocco win Amputee World Cup.",
      "Wires", "AF"),
+    (33, "Antalya", "COP31 ends with no deal; fossil fuels dropped.",
+     "Reuters", "EU"),
+    (34, "Benghazi", "Russian warship Merkury sinks; Kyiv blamed, 10 hurt.",
+     "Wires", "AF"),
+    (35, "Khartoum", "Drones kill 4, wound 9; army blames Ethiopia.",
+     "Wires", "AF"),
+    (36, "Nairobi", "Internet-metering bill sparks privacy fears.",
+     "Al Jazeera", "AF"),
+    (37, "North Carolina", "Democrats take 258 seats; Hubbard beats Foxx.",
+     "AP", "AM"),
+    (38, "Virginia", "Trump hosts third $TRUMP gala; token below $1.",
+     "Reuters", "AM"),
+    (39, "West Bank", "Eisenkot calls settler attacks 'Jewish terrorism'.",
+     "Reuters", "ME"),
+    (40, "Washington", "Intel chief Clayton: Putin 'no friend of America'.",
+     "ABC", "AM"),
+    (41, "Washington", "Kennedy presses Lutnick on Nvidia chips.",
+     "NBC", "AM"),
+    (42, "Pennsylvania", "Measles kills 12 in Amish communities.",
+     "Guardian", "AM"),
+    (43, "Dymer", "Wave drone hits a block; 3 dead, ~10 trapped.",
+     "Reuters", "EU"),
+    (44, "Gulf", "Trump: test blockade, end 'at the bottom of the sea'.",
+     "Fox News", "ME"),
+    (45, "Istanbul", "Thousands march in Besiktas over Sozcu takeover.",
+     "AFP", "EU"),
+    (46, "London", "May tells PM Burnham: 'accept Brexit and move on'.",
+     "BBC", "EU"),
+    (47, "Naha", "Shuri Castle restored; Seiden reopens Monday.",
+     "Japan Times", "APAC"),
+    (48, "Gaza", "Israeli fire kills 2 in Jabalia, Deir al-Balah.",
+     "Wafa", "ME"),
+    (49, "Gazipur", "Garment workers block highway; police fire tear gas.",
+     "TBS", "APAC"),
+    (50, "Taipei", "We Are Born Good wins Best Narrative Feature.",
+     "CNA", "APAC"),
+    (51, "Los Angeles", "Ateez top Billboard 200 a 4th time.",
+     "Billboard", "AM"),
+    (52, "Naples", "Thitikul wins CME Group title 3rd straight year; $4M.",
+     "LPGA", "AM"),
+    (53, "New York", "Skubal agrees to record $450M Mets deal.",
+     "MLB.com", "AM"),
+    (54, "Portimao", "Marquez clinches 8th title, tying Agostini.",
+     "MotoGP", "EU"),
+    (55, "Wolverhampton", "Price beats Van Veen 16-11, 4th Slam.",
+     "Sky Sports", "EU"),
 ]
 
 UTC_EVENTS = [
@@ -302,24 +364,26 @@ NUMBERS = [
 ]
 
 REGIONS = [
-    ("EUROPE", 13), ("MIDDLE EAST", 4), ("ASIA-PACIFIC", 4),
-    ("AMERICAS", 11), ("AFRICA", 1), ("OCEANIA", 1),
+    ("EUROPE", 17), ("MIDDLE EAST", 7), ("ASIA-PACIFIC", 7),
+    ("AMERICAS", 19), ("AFRICA", 4), ("OCEANIA", 1),
 ]
 
 DATE_CHECK = (
-    "Every story on this page happened or was first reported on Sunday "
-    "22 November 2026. Left out \u2014 other days' news: the Peru quake "
-    "(Fri 20 Nov) \u00b7 the Myanmar ruling (Thu 19 Nov) \u00b7 the Shenzhen "
-    "summit (Thu 19 Nov) \u00b7 \u2018El Chapo Isidro\u2019 \u2014 caught Fri 20, "
-    "announced Sat 21 Nov \u00b7 the Nvidia probe (Fri 20 Nov) \u00b7 Cyclone "
-    "Akvan (Fri 20 Nov) \u00b7 the Wall Street plunge (Fri 20 Nov) \u00b7 the "
-    "Basra fire (Sat 21 Nov)."
+    "Every story on this page happened on Sunday 22 November 2026. "
+    "Left out \u2014 other days' news: Peru quake (20 Nov) \u00b7 Myanmar "
+    "ruling (19 Nov) \u00b7 Shenzhen (19 Nov) \u00b7 \u2018El Chapo "
+    "Isidro\u2019 (20/21 Nov) \u00b7 Nvidia probe "
+    "(20 Nov) \u00b7 Cyclone Akvan (20 Nov) \u00b7 Wall Street plunge "
+    "(20 Nov) \u00b7 Basra fire (21 Nov) \u00b7 BepiColombo orbit entry "
+    "(21 Nov) \u00b7 France protests (21 Nov) \u00b7 UN weapons talks "
+    "(21 Nov) \u00b7 Helsing launch (11 Nov) \u00b7 Seattle ICE "
+    "arrests (21 Nov)."
 )
 
 FOOT_SOURCES = ("Sources: Reuters, BBC, AP, AFP, The Guardian, ESPN, FIA, "
-                "Vatican News, ATP, Times of Israel, Yonhap "
-                "\u2014 reports of Sunday 22 November 2026. "
-                "Scenes are drawn illustrations, not photographs.")
+                "Vatican News, ATP, Times of Israel, Yonhap, Al Jazeera, "
+                "ABC, NBC \u2014 reports of Sunday 22 November 2026. "
+                "Scenes are drawn, not photographs.")
 FOOT_LEGEND = ("CONFIRMED = reported by the named source \u00b7 REPORTED = one "
                "source's account \u00b7 CLAIM = one party's claim \u00b7 PENDING = "
                "not settled yet.")
@@ -328,7 +392,7 @@ FOOT_LEGEND = ("CONFIRMED = reported by the named source \u00b7 REPORTED = one "
 # ------------------------------------------------------------ illustrations
 # Flat geometric scenes, one consistent style: dark navy night scenes
 # for the war leads, warm rooms for COP31, simple pictograms for the
-# ten cards. No photos, no AI images.
+# nine cards. No photos, no AI images.
 
 def _stars(draw, x0, y0, w, h, pts):
     for px, py, r in pts:
@@ -510,21 +574,21 @@ def art_radar(draw, x, y, w, h):
     for sx in range(8, w - 8, 30):
         draw.line([(x + sx, y + h - 7), (x + sx + 16, y + h - 7)],
                   fill=(120, 170, 210), width=2)
-    # Dish tower, left.
-    draw.rectangle([x + 26, y + 22, x + 32, y + h - 12],
+    # Dish tower, left: short mast under the dish, sized to the strip.
+    draw.rectangle([x + 26, y + 8, x + 32, y + h - 12],
                    fill=(140, 140, 150))
-    draw.pieslice([x + 8, y + 4, x + 50, y + 32], start=200, end=340,
+    draw.pieslice([x + 8, y + 2, x + 50, y + h - 2], start=200, end=340,
                   fill=(200, 200, 210))
-    # Sweep arc.
-    draw.arc([x + 56, y + 2, x + 120, y + 40], start=300, end=60,
+    # Sweep arc, kept inside the strip.
+    draw.arc([x + 56, y + 2, x + 120, y + h], start=300, end=60,
              fill=(240, 200, 90), width=2)
-    # Facility block with a flame, right.
-    draw.rectangle([x + 128, y + h - 30, x + 168, y + h - 12],
+    # Facility block with a flame, right: low block, flame above it.
+    draw.rectangle([x + 128, y + h - 16, x + 168, y + h - 12],
                    fill=(52, 58, 84))
-    draw.polygon([(x + 142, y + h - 30), (x + 148, y + h - 42),
-                  (x + 154, y + h - 30)], fill=(240, 140, 40))
-    draw.polygon([(x + 145, y + h - 30), (x + 148, y + h - 38),
-                  (x + 151, y + h - 30)], fill=(250, 210, 90))
+    draw.polygon([(x + 142, y + h - 16), (x + 148, y + h - 24),
+                  (x + 154, y + h - 16)], fill=(240, 140, 40))
+    draw.polygon([(x + 145, y + h - 16), (x + 148, y + h - 21),
+                  (x + 151, y + h - 16)], fill=(250, 210, 90))
 
 
 def art_nepal(draw, x, y, w, h):
@@ -536,54 +600,31 @@ def art_nepal(draw, x, y, w, h):
                  fill=(120, 100, 80))
     draw.polygon([(x + 108, y + 4), (x + 118, y + 4), (x + 126, y + 18),
                   (x + 112, y + 18)], fill=(255, 255, 255))
-    # Plane crossing the sky.
-    draw.polygon([(x + 96, y + 22), (x + 160, y + 22), (x + 168, y + 28),
-                  (x + 96, y + 28)], fill=(240, 240, 245))
-    draw.polygon([(x + 120, y + 14), (x + 132, y + 14), (x + 128, y + 22),
-                  (x + 118, y + 22)], fill=(240, 240, 245))
-    draw.polygon([(x + 150, y + 14), (x + 158, y + 14), (x + 154, y + 22),
-                  (x + 146, y + 22)], fill=(240, 240, 245))
+    # Plane crossing the sky, kept inside the strip.
+    draw.polygon([(x + 96, y + 20), (x + 160, y + 20), (x + 168, y + 26),
+                  (x + 96, y + 26)], fill=(240, 240, 245))
+    draw.polygon([(x + 120, y + 12), (x + 132, y + 12), (x + 128, y + 20),
+                  (x + 118, y + 20)], fill=(240, 240, 245))
+    draw.polygon([(x + 150, y + 12), (x + 158, y + 12), (x + 154, y + 20),
+                  (x + 146, y + 20)], fill=(240, 240, 245))
     draw.line([(x + 8, y + h - 6), (x + w - 8, y + h - 6)],
               fill=(120, 120, 120), width=2)
-
-
-def art_mercury(draw, x, y, w, h):
-    """Mercury, cratered and grey, with its orbit ring and a small probe."""
-    _pict_bg(draw, x, y, w, h, (16, 20, 36))
-    _stars(draw, x, y, w, h, [(14, 8, 1), (60, 6, 1), (150, 10, 1),
-                              (170, 20, 1), (30, 34, 1), (120, 38, 1)])
-    # Orbit ring.
-    draw.ellipse([x + 18, y - 6, x + w - 18, y + h + 6],
-                 outline=(150, 150, 170), width=1)
-    # Mercury with craters.
-    cx, cy, r = x + w // 2 - 8, y + h // 2, 15
-    draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(168, 158, 140))
-    for ox, oy, cr in ((-6, -5, 3), (5, 2, 4), (-2, 7, 2), (7, -7, 2)):
-        draw.ellipse([cx + ox - cr, cy + oy - cr, cx + ox + cr,
-                      cy + oy + cr], fill=(140, 130, 114))
-    # Probe on the ring, top right.
-    draw.rectangle([x + w - 34, y + 6, x + w - 26, y + 12],
-                   fill=(220, 220, 230))
-    draw.line([(x + w - 34, y + 9), (x + w - 42, y + 9)],
-              fill=(220, 220, 230), width=2)
 
 
 def art_pope(draw, x, y, w, h):
     """A long shared lunch table: plates, bread, and guests."""
     _pict_bg(draw, x, y, w, h, (242, 236, 224))
-    # Guests: heads above the table.
+    # Guests: heads above the table, sized to the strip.
     for i, hx in enumerate((26, 66, 106, 146)):
         skin = (222, 184, 150) if i % 2 == 0 else (140, 100, 70)
-        draw.ellipse([x + hx, y + 4, x + hx + 22, y + 26], fill=skin)
-        draw.rectangle([x + hx - 2, y + 26, x + hx + 24, y + 32],
+        draw.ellipse([x + hx, y + 2, x + hx + 20, y + 16], fill=skin)
+        draw.rectangle([x + hx - 2, y + 16, x + hx + 22, y + 18],
                        fill=(90, 40, 40) if i == 1 else (40, 50, 90))
-    # Table with plates and bread.
-    draw.rectangle([x, y + 32, x + w, y + h], fill=(120, 82, 50))
+    # Table with plates.
+    draw.rectangle([x, y + 18, x + w, y + h], fill=(120, 82, 50))
     for px in (18, 62, 106, 150):
-        draw.ellipse([x + px, y + 36, x + px + 18, y + 44],
+        draw.ellipse([x + px, y + 20, x + px + 16, y + 25],
                      fill=(255, 255, 255))
-    draw.ellipse([x + 84, y + h - 12, x + 100, y + h - 4],
-                 fill=(200, 160, 90))
 
 
 def art_tennis(draw, x, y, w, h):
@@ -678,17 +719,18 @@ def art_cricket(draw, x, y, w, h):
 
 def art_f1(draw, x, y, w, h):
     _pict_bg(draw, x, y, w, h, (24, 28, 48))
-    draw.arc([x - 30, y - 6, x + 110, y + h + 20], start=270, end=90,
+    # Track curve, kept inside the strip.
+    draw.arc([x - 30, y + 2, x + 110, y + h - 2], start=270, end=90,
              fill=(200, 200, 210), width=8)
-    draw.arc([x - 30, y - 6, x + 110, y + h + 20], start=300, end=60,
+    draw.arc([x - 30, y + 2, x + 110, y + h - 2], start=300, end=60,
              fill=(240, 200, 60), width=3)
     # Checkered flag.
     for r in range(2):
         for c in range(4):
             fill = (255, 255, 255) if (r + c) % 2 == 0 else (20, 20, 20)
-            draw.rectangle([x + w - 52 + c * 10, y + 8 + r * 10,
-                            x + w - 42 + c * 10, y + 18 + r * 10], fill=fill)
-    draw.line([(x + w - 52, y + 8), (x + w - 52, y + 44)], fill=(255, 255, 255),
+            draw.rectangle([x + w - 52 + c * 10, y + 8 + r * 9,
+                            x + w - 42 + c * 10, y + 17 + r * 9], fill=fill)
+    draw.line([(x + w - 52, y + 8), (x + w - 52, y + h)], fill=(255, 255, 255),
               width=2)
     # Car: low red wedge with wheels.
     draw.polygon([(x + 30, y + h - 26), (x + 78, y + h - 26),
@@ -722,9 +764,9 @@ def art_ship(draw, x, y, w, h):
 
 def art_power(draw, x, y, w, h):
     _pict_bg(draw, x, y, w, h, (240, 230, 210))
-    # Skyline: lit and dark blocks.
-    blocks = [(10, 26, 30), (44, 14, 44), (80, 30, 26), (112, 18, 40),
-              (152, 28, 30)]
+    # Skyline blocks, tops kept inside the strip.
+    blocks = [(10, 12, 30), (44, 6, 44), (80, 14, 26), (112, 8, 40),
+              (152, 12, 30)]
     for bx, by, bw in blocks:
         draw.rectangle([x + bx, y + by, x + bx + bw, y + h - 4],
                        fill=(52, 58, 84))
@@ -733,25 +775,25 @@ def art_power(draw, x, y, w, h):
                 if (wx + wy) % 20 == 0:
                     draw.rectangle([x + wx, y + wy, x + wx + 4, y + wy + 4],
                                    fill=(240, 200, 90))
-    # Lightning bolt over the dark city.
+    # Lightning bolt over the dark city, kept inside the strip.
     draw.polygon([(x + w - 30, y + 4), (x + w - 14, y + 4),
-                  (x + w - 24, y + 22), (x + w - 14, y + 22),
-                  (x + w - 28, y + 44), (x + w - 26, y + 26),
-                  (x + w - 36, y + 26)], fill=(240, 200, 60))
+                  (x + w - 24, y + 14), (x + w - 14, y + 14),
+                  (x + w - 28, y + 24), (x + w - 26, y + 16),
+                  (x + w - 36, y + 16)], fill=(240, 200, 60))
 
 
 def art_hospital(draw, x, y, w, h):
     _pict_bg(draw, x, y, w, h, (235, 242, 245))
-    draw.rectangle([x + 14, y + 12, x + 70, y + h - 8], fill=(255, 255, 255),
+    draw.rectangle([x + 14, y + 6, x + 70, y + h - 4], fill=(255, 255, 255),
                    outline=(180, 180, 180))
-    draw.rectangle([x + 34, y + 18, x + 50, y + 40], fill=(176, 30, 36))
-    draw.rectangle([x + 28, y + 26, x + 56, y + 32], fill=(176, 30, 36))
-    # Heart trace.
-    pts = [(x + 82, y + 30), (x + 96, y + 30), (x + 102, y + 18),
-           (x + 110, y + 42), (x + 116, y + 26), (x + 122, y + 30),
-           (x + 140, y + 30), (x + 152, y + 30)]
+    draw.rectangle([x + 36, y + 9, x + 48, y + 19], fill=(176, 30, 36))
+    draw.rectangle([x + 31, y + 13, x + 53, y + 16], fill=(176, 30, 36))
+    # Heart trace, kept inside the strip.
+    pts = [(x + 82, y + 18), (x + 96, y + 18), (x + 102, y + 10),
+           (x + 110, y + 22), (x + 116, y + 14), (x + 122, y + 18),
+           (x + 140, y + 18), (x + 152, y + 18)]
     draw.line(pts, fill=(176, 30, 36), width=2)
-    draw.line([(x + 82, y + h - 12), (x + w - 10, y + h - 12)],
+    draw.line([(x + 82, y + h - 2), (x + w - 10, y + h - 2)],
               fill=(180, 180, 180), width=1)
 
 
@@ -783,18 +825,15 @@ def art_tower(draw, x, y, w, h):
     draw.polygon([(x + 22, y + 16), (x + 60, y + 16), (x + 52, y + 4),
                   (x + 30, y + 4)], fill=(140, 160, 190))
     draw.rectangle([x + 26, y + 8, x + 56, y + 14], fill=(200, 220, 240))
-    # Grounded plane.
-    draw.polygon([(x + 84, y + 34), (x + 168, y + 34), (x + 176, y + 40),
-                  (x + 84, y + 40)], fill=(180, 180, 190))
-    draw.polygon([(x + 120, y + 24), (x + 132, y + 24), (x + 128, y + 34),
-                  (x + 118, y + 34)], fill=(180, 180, 190))
+    # Grounded plane, kept inside the strip.
+    draw.polygon([(x + 84, y + 18), (x + 168, y + 18), (x + 176, y + 24),
+                  (x + 84, y + 24)], fill=(180, 180, 190))
+    draw.polygon([(x + 120, y + 12), (x + 132, y + 12), (x + 128, y + 18),
+                  (x + 118, y + 18)], fill=(180, 180, 190))
     draw.line([(x + 84, y + h - 8), (x + w - 8, y + h - 8)],
               fill=(120, 120, 120), width=2)
-    # Red cross over the runway: flights stopped.
-    draw.line([(x + 96, y + 44), (x + 108, y + 56)], fill=(176, 30, 36),
-              width=3)
-    draw.line([(x + 108, y + 44), (x + 96, y + 56)], fill=(176, 30, 36),
-              width=3)
+    # (The red cross of the taller strip is gone: no room at 26 px.
+    # The grounded plane and the headline carry the story.)
 
 
 def art_bottle(draw, x, y, w, h):
@@ -835,7 +874,7 @@ TEN_ART = {"ballot": art_ballot, "cricket": art_cricket, "f1": art_f1,
            "ship": art_ship, "power": art_power, "hospital": art_hospital,
            "fbi": art_fbi, "tower": art_tower, "bottle": art_bottle,
            "quake": art_quake, "radar": art_radar, "nepal": art_nepal,
-           "mercury": art_mercury, "pope": art_pope, "tennis": art_tennis,
+           "pope": art_pope, "tennis": art_tennis,
            "mic": art_mic}
 
 
@@ -903,48 +942,73 @@ CONTINENTS = [
 ]
 
 # Story number -> (lon, lat, nudge_x, nudge_y). The tight clusters
-# (Europe, the Gulf, the US east coast) are fanned out with small
-# nudges so no two numbered dots touch.
+# (Europe, the Gulf, the US east coast, East Asia) are fanned out
+# with nudges so no two numbered dots touch: the closest pair sits
+# 13.4 px apart, and every pin stays within 30 px of its true spot
+# (the map is only 330x72, so a schematic fan-out is the only way
+# 55 pins fit). Nudges were placed by a greedy pass plus a
+# simulated-annealing repair, then checked pair by pair.
 DOTS = [
-    (1, 33, 49.5, 0, 0),       # Kyiv region, Ukraine
-    (2, 114.2, 22.3, 0, 0),    # Hong Kong
-    (3, 174.8, -41.3, 0, 0),   # Wellington, NZ
-    (4, 50.6, 26.2, 9, 7),     # Manama, Bahrain
-    (5, -115.1, 36.2, 6, -6),  # Las Vegas
-    (6, 51.4, 35.7, -7, -7),   # Tehran
-    (7, -47.9, -15.8, 0, 0),   # Brasilia
-    (8, 4.35, 50.85, -9, -11), # Brussels
-    (9, 77.2, 28.6, -3, -2),   # New Delhi
-    (10, 8.65, 49.87, 3, -14), # Darmstadt (ESA control), BepiColombo
-    (11, 12.45, 41.9, 10, 17), # Vatican City
-    (12, 7.7, 45.1, -6, 13),   # Turin, ATP Finals
-    (13, 149.1, -35.3, 0, 0),  # Canberra
-    (14, 46.7, 24.6, -9, -2),  # Riyadh
-    (15, 127.0, 37.5, 0, 0),   # Seoul
-    (16, 7.7, 45.1, 6, -3),    # Turin, ATP doubles final
-    (17, 35.2, 31.8, -8, 8),   # Jerusalem
-    (18, -2.99, 53.43, -16, 13),  # Liverpool
-    (19, 2.19, 41.38, -15, 17),   # Barcelona
-    (20, -0.34, 53.74, -19, -7),  # Hull
-    (21, 9.67, 45.70, 22, -13),   # Bergamo, Atalanta
-    (22, 9.19, 45.46, 17, 7),     # Milan
-    (23, 7.69, 45.07, -10, -3),   # Turin, Juventus
-    (24, -96.8, 32.78, 0, 0),     # Dallas
-    (25, -83.05, 42.33, 0, 0),    # Detroit
-    (26, -94.58, 39.1, -4, -13),  # Kansas City
-    (27, -121.97, 37.35, -4, -4), # Santa Clara, 49ers
-    (28, -74.0, 40.71, 6, -6),    # New York
-    (29, -104.99, 39.74, -6, 8),  # Denver
-    (30, -80.19, 25.76, 0, 0),    # Miami
-    (31, -71.06, 42.36, 7, 6),    # Boston
-    (32, -120.62, 34.74, -7, 7),  # Vandenberg
-    (33, 2.35, 48.85, -17, 0),    # Paris
-    (34, -0.19, 5.6, 0, 0),       # Accra, Ghana
+    (1, 33, 49.5, 25, -10),    # Kyiv region, Ukraine
+    (2, 114.2, 22.3, -1, -6),  # Hong Kong
+    (3, 174.8, -41.3, -2, 2),  # Wellington, NZ
+    (4, 50.6, 26.2, 23, 19),   # Manama, Bahrain
+    (5, -115.1, 36.2, -11, 4), # Las Vegas
+    (6, 51.4, 35.7, 24, -15),  # Tehran
+    (7, -47.9, -15.8, 2, 15),  # Brasilia
+    (8, 4.35, 50.85, 22, 6),   # Brussels
+    (9, 77.2, 28.6, 20, -21),  # New Delhi
+    (10, 12.45, 41.9, -2, 0),  # Vatican City
+    (11, 7.7, 45.1, -7, 29),   # Turin, ATP Finals
+    (12, 149.1, -35.3, 0, -3), # Canberra
+    (13, 46.7, 24.6, 9, 28),   # Riyadh
+    (14, 127.0, 37.5, 8, 0),   # Seoul
+    (15, 7.7, 45.1, 8, 16),    # Turin, ATP doubles final
+    (16, 35.2, 31.8, 2, 29),   # Jerusalem
+    (17, -2.99, 53.43, -7, -8),  # Liverpool
+    (18, 2.19, 41.38, -27, 5),   # Barcelona
+    (19, -0.34, 53.74, -28, -8), # Hull
+    (20, 9.67, 45.70, 26, -12),  # Bergamo, Atalanta
+    (21, 9.19, 45.46, -7, 15),   # Milan
+    (22, 7.69, 45.07, 0, -12),   # Turin, Juventus
+    (23, -96.8, 32.78, -10, -1), # Dallas
+    (24, -83.05, 42.33, 25, 1),  # Detroit
+    (25, -94.58, 39.1, -18, 24), # Kansas City
+    (26, -121.97, 37.35, -21, 6),  # Santa Clara, 49ers
+    (27, -74.0, 40.71, -4, -15),   # New York
+    (28, -104.99, 39.74, -14, -15),  # Denver
+    (29, -80.19, 25.76, 1, 26),   # Miami
+    (30, -71.06, 42.36, 1, -2),   # Boston
+    (31, -120.62, 34.74, -19, -18),  # Vandenberg
+    (32, -0.19, 5.6, -13, 26),    # Accra, Ghana
+    (33, 30.7, 36.9, 15, -5),   # Antalya, COP31
+    (34, 20.1, 32.1, 23, 6),    # Benghazi, Merkury
+    (35, 32.5, 15.6, 20, 9),    # Khartoum
+    (36, 36.8, -1.3, -18, 22),  # Nairobi
+    (37, -78.6, 35.8, 21, -16), # Raleigh, North Carolina
+    (38, -77.5, 37.5, -18, -16),  # Richmond, Virginia
+    (39, 35.2, 32.0, 29, 0),    # West Bank
+    (40, -77.0, 38.9, 3, 11),   # Washington DC, Clayton
+    (41, -77.0, 38.9, 18, 23),  # Washington DC, Kennedy
+    (42, -76.9, 40.3, -15, 18), # Harrisburg, Pennsylvania
+    (43, 30.78, 50.78, -7, -10),  # Dymer, Kyiv region
+    (44, 50.3, 29.2, 29, 4),      # Kharg Island, Persian Gulf
+    (45, 28.98, 41.01, 3, 20),    # Istanbul
+    (46, -0.12, 51.51, -13, 26),  # London
+    (47, 127.68, 26.21, -4, -22), # Naha, Okinawa
+    (48, 34.45, 31.50, -15, 25),  # Gaza
+    (49, 90.43, 24.00, 9, 11),    # Gazipur, Bangladesh
+    (50, 121.56, 25.03, 2, 13),   # Taipei
+    (51, -118.24, 34.05, -18, 22),  # Los Angeles
+    (52, -81.80, 26.14, -7, -3),    # Naples, Florida
+    (53, -74.0, 40.71, 23, 12),     # New York, Mets
+    (54, -8.54, 37.14, -22, 20),    # Portimao, Portugal
+    (55, -2.12, 52.59, -10, 5),     # Wolverhampton
 ]
 
 
 def draw_map(draw, x0, y0, w, h):
-    """Flat beige world map with numbered red pins for stories 1-34."""
+    """Flat beige world map with numbered red pins for stories 1-55."""
     lon0, lon1 = -180.0, 180.0
     lat0, lat1 = 84.0, -60.0
 
@@ -1000,48 +1064,48 @@ def build_page():
     sb = draw.textbbox((0, 0), sub, font=sf)
     draw.text(((W - (sb[2] - sb[0])) / 2 - sb[0], 86 - sb[1]), sub,
               font=sf, fill=RED)
-    stats = ("34 STORIES \u00b7 6 REGIONS \u00b7 EVERY ONE DATED "
+    stats = ("55 STORIES \u00b7 6 REGIONS \u00b7 EVERY ONE DATED "
              "SUNDAY 22 NOVEMBER 2026")
     stf = font(SANS_BOLD, 12)
     stb = draw.textbbox((0, 0), stats, font=stf)
-    draw.text(((W - (stb[2] - stb[0])) / 2 - stb[0], 105 - stb[1]), stats,
+    draw.text(((W - (stb[2] - stb[0])) / 2 - stb[0], 103 - stb[1]), stats,
               font=stf, fill=NAVY)
-    hrule(draw, MX, W - MX, 122, fill=NAVY, width=2)
+    hrule(draw, MX, W - MX, 118, fill=NAVY, width=2)
 
     # --- the day in numbers --------------------------------------------------
     nbox_w = (CW - (len(NUMBERS) - 1) * 6) // len(NUMBERS)
     for i, (val, lab) in enumerate(NUMBERS):
         x = MX + i * (nbox_w + 6)
-        draw.rectangle([x, 128, x + nbox_w, 168], fill=PAPER_DARK,
+        draw.rectangle([x, 124, x + nbox_w, 164], fill=PAPER_DARK,
                        outline=RULE, width=1)
         vf = font(SANS_BOLD, 20)
         vb = draw.textbbox((0, 0), val, font=vf)
         draw.text((x + (nbox_w - (vb[2] - vb[0])) / 2 - vb[0],
-                   128 + 4 - vb[1]), val, font=vf, fill=RED)
+                   124 + 4 - vb[1]), val, font=vf, fill=RED)
         lf = font(SANS, 9)
         lb = draw.textbbox((0, 0), lab, font=lf)
         draw.text((x + (nbox_w - (lb[2] - lb[0])) / 2 - lb[0],
-                   168 - 4 - lb[3]), lab, font=lf, fill=GREY)
+                   164 - 4 - lb[3]), lab, font=lf, fill=GREY)
 
     # --- region strip ---------------------------------------------------------
     seg_w = CW // len(REGIONS)
     for i, (name, count) in enumerate(REGIONS):
         x = MX + i * seg_w
         w = seg_w if i < len(REGIONS) - 1 else CW - i * seg_w
-        draw.rectangle([x, 178, x + w, 196], fill=REGION_COLORS[name])
+        draw.rectangle([x, 174, x + w, 192], fill=REGION_COLORS[name])
         label = "%s %d" % (name, count)
         rf = font(SANS_BOLD, 11)
         rb = draw.textbbox((0, 0), label, font=rf)
         draw.text((x + (w - (rb[2] - rb[0])) / 2 - rb[0],
-                   178 + (18 - (rb[3] - rb[1])) / 2 - rb[1]), label,
+                   174 + (18 - (rb[3] - rb[1])) / 2 - rb[1]), label,
                   font=rf, fill=(255, 255, 255))
 
     # --- the day in utc --------------------------------------------------------
-    draw.rectangle([MX, 202, MX + 108, 218], fill=NAVY)
+    draw.rectangle([MX, 198, MX + 108, 214], fill=NAVY)
     uf = font(SANS_BOLD, 10)
     ub = draw.textbbox((0, 0), "THE DAY IN UTC", font=uf)
     draw.text((MX + (108 - (ub[2] - ub[0])) / 2 - ub[0],
-               202 + (16 - (ub[3] - ub[1])) / 2 - ub[1]), "THE DAY IN UTC",
+               198 + (16 - (ub[3] - ub[1])) / 2 - ub[1]), "THE DAY IN UTC",
               font=uf, fill=(255, 255, 255))
     utc_parts = []
     for t, ev in UTC_EVENTS:
@@ -1049,13 +1113,13 @@ def build_page():
     utc_line = "  \u00b7  ".join(utc_parts)
     utf = font(SANS, 10)
     utb = draw.textbbox((0, 0), utc_line, font=utf)
-    draw.text((MX + 116, 202 + (16 - (utb[3] - utb[1])) / 2 - utb[1]),
+    draw.text((MX + 116, 198 + (16 - (utb[3] - utb[1])) / 2 - utb[1]),
               utc_line, font=utf, fill=INK)
 
     # --- three leads ------------------------------------------------------------
     lead_w = (CW - 2 * 10) // 3
-    lead_y = 226
-    ill_h = 96
+    lead_y = 222
+    ill_h = 88
     for i, lead in enumerate(LEADS):
         x = MX + i * (lead_w + 10)
         LEAD_ART[lead["art"]](draw, x, lead_y, lead_w, ill_h)
@@ -1090,9 +1154,9 @@ def build_page():
         draw.text((x, y + 3), "Sources: %s" % lead["source"],
                   font=font(SANS, 9), fill=GREY)
 
-    # --- the day in ten -----------------------------------------------------------
-    ten_y = 446
-    draw.text((MX, ten_y), "THE DAY IN TEN",
+    # --- the day in nine -----------------------------------------------------------
+    ten_y = 422
+    draw.text((MX, ten_y), "THE DAY IN NINE",
               font=font(SERIF_BOLD, 15), fill=NAVY)
     right = "THE STORIES THAT MOVED THE WORLD TODAY"
     rf = font(SANS_BOLD, 10)
@@ -1102,9 +1166,9 @@ def build_page():
 
     card_w = 188
     card_gap = 8
-    card_h = 128
-    ill_h2 = 42
-    grid_y = ten_y + 26
+    card_h = 112
+    ill_h2 = 26
+    grid_y = ten_y + 24
     for i, story in enumerate(TEN):
         col = i % 5
         row = i // 5
@@ -1133,10 +1197,10 @@ def build_page():
         ty += 13
         hlines = fit_lines(draw, story["headline"], font(SANS_BOLD, 12),
                            card_w - 12, 2)
-        ty = text_block(draw, tx, ty, hlines, font(SANS_BOLD, 12), INK, 14)
+        ty = text_block(draw, tx, ty, hlines, font(SANS_BOLD, 12), INK, 13.5)
         dlines = fit_lines(draw, story["deck"], font(SANS, 10),
                            card_w - 12, 2)
-        ty = text_block(draw, tx, ty + 1, dlines, font(SANS, 10), GREY, 12)
+        ty = text_block(draw, tx, ty + 1, dlines, font(SANS, 10), GREY, 11)
         draw.text((tx, y + card_h - 13), story["source"],
                   font=font(SANS, 8.5), fill=GREY)
 
@@ -1144,18 +1208,18 @@ def build_page():
 
     # --- where it happened + date check -----------------------------------
     # Map on the left, DATE CHECK on the right at the same height, so
-    # the 21 briefs below get a full-width four-column band of their own.
+    # the 43 briefs below get a full-width four-column band of their own.
     draw.text((MX, bottom_y + 6), "WHERE IT HAPPENED",
               font=font(SERIF_BOLD, 13), fill=NAVY)
     draw.text((MX + 338, bottom_y + 6), "DATE CHECK",
               font=font(SERIF_BOLD, 13), fill=NAVY)
-    map_y = bottom_y + 24
-    map_h = 92
+    map_y = bottom_y + 20
+    map_h = 72
     draw_map(draw, MX, map_y, 330, map_h)
     dc_x = MX + 338
     dc_y = map_y
     dc_w = CW - 338
-    dc_h = 92
+    dc_h = 72
     draw.rectangle([dc_x, dc_y, dc_x + dc_w, dc_y + dc_h], fill=RED_TINT,
                    outline=RED, width=1)
     draw.rectangle([dc_x, dc_y, dc_x + 92, dc_y + dc_h], fill=RED)
@@ -1169,30 +1233,34 @@ def build_page():
     text_block(draw, dc_x + 92 + 10, dc_y + 7, dlines, font(SANS, 10.5),
                INK, 13)
 
-    # --- also on sunday: 21 more stories in four columns -------------------
-    # Four columns of six rows (the last row holds three); each brief
+    # --- also on sunday: 43 more stories in five columns ------------------
+    # Five columns of nine rows (the last row holds three); each brief
     # is one short fact in at most two lines, the red number leading.
-    draw.text((MX, map_y + map_h + 8),
-              "ALSO ON SUNDAY 22 NOVEMBER \u2014 21 MORE STORIES",
+    # Rows run at 22 px: two 9-pt lines at 10 px leading fill 21 px,
+    # so the next row starts 1 px clear of the descenders. Four
+    # columns at 10 pt could not hold the band: two lines need 22 px
+    # and eleven rows would run past the footer.
+    draw.text((MX, map_y + map_h + 6),
+              "ALSO ON SUNDAY 22 NOVEMBER \u2014 43 MORE STORIES",
               font=font(SERIF_BOLD, 13), fill=NAVY)
     bx0 = MX
-    col_w = (CW - 3 * 8) // 4
-    briefs_y = map_y + map_h + 26
+    col_w = (CW - 4 * 8) // 5
+    briefs_y = map_y + map_h + 22
     for i, (num, place, text, src, _reg) in enumerate(BRIEFS):
-        col = i % 4
-        row = i // 4
+        col = i % 5
+        row = i // 5
         x = bx0 + col * (col_w + 8)
-        y = briefs_y + row * 20
-        nf = font(SANS_BOLD, 10)
+        y = briefs_y + row * 22
+        nf = font(SANS_BOLD, 9)
         num_txt = "%d." % num
         nw = draw.textlength(num_txt + " ", font=nf)
         draw.text((x, y), num_txt, font=nf, fill=RED)
         body = "%s: %s (%s)" % (place, text, src)
-        lines = fit_lines(draw, body, font(SANS, 10), col_w - 6 - nw, 2)
-        text_block(draw, x + nw, y, lines, font(SANS, 10), INK, 11)
+        lines = fit_lines(draw, body, font(SANS, 9), col_w - 6 - nw, 2)
+        text_block(draw, x + nw, y, lines, font(SANS, 9), INK, 10)
 
     # --- footer ------------------------------------------------------------------
-    fy = briefs_y + 6 * 20 + 4
+    fy = briefs_y + 9 * 22 + 4
     draw.text((MX, fy), FOOT_SOURCES, font=font(SANS, 9.5), fill=GREY)
     draw.text((MX, fy + 11), FOOT_LEGEND, font=font(SANS, 9.5), fill=GREY)
     return page
