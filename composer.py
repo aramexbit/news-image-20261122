@@ -7,8 +7,9 @@ the prebuilt image when Pillow is missing.
 """
 
 import os
+import random
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 W, H = 1024, 1024
 MX = 28  # side margin
@@ -362,42 +363,198 @@ DOTS = [
 ]
 
 
-def draw_map(draw, x0, y0, w, h):
+def draw_map(draw, page, x0, y0, w, h):
     """World map with numbered dots 1-10 for the big stories.
 
-    Equirectangular, with a margin around the inhabited latitudes so
-    no dot touches the frame, and denser coastlines so each continent
-    reads at a glance. Inland seas are cut back in after the land.
+    Printed-atlas look: a deep blue ocean that lightens over the
+    continental shelf near the coasts and darkens toward the open
+    sea and the frame edges, terrain-coloured land (green lowlands,
+    tan arid belts, darker boreal north) with soft hill-shading
+    from the upper left, a faint drop shadow under each continent
+    so the land reads as raised above the sea, and a very subtle
+    graticule. Equirectangular, with a margin around the inhabited
+    latitudes so no dot touches the frame. The map is rendered
+    supersampled and downscaled so the dense coastlines stay
+    smooth; inland seas are cut back in after the land, and the
+    numbered dots are drawn last, crisp, on top of the shading.
     """
+    SS = 3  # supersample factor: coastlines stay smooth at 300x92
+    Wm, Hm = w * SS, h * SS
     lon0, lon1 = -175.0, 185.0
     lat0, lat1 = 84.0, -62.0
-    draw.rectangle([x0, y0, x0 + w, y0 + h], fill=(223, 232, 238),
-                   outline=RULE, width=1)
-    for lon in range(-150, 181, 30):
-        gx = x0 + (lon - lon0) / (lon1 - lon0) * w
-        draw.line([(gx, y0), (gx, y0 + h)], fill=(210, 220, 228), width=1)
-    for lat in range(-50, 71, 25):
-        gy = y0 + (lat0 - lat) / (lat0 - lat1) * h
-        draw.line([(x0, gy), (x0 + w, gy)], fill=(210, 220, 228), width=1)
 
     def px(lon, lat):
+        return ((lon - lon0) / (lon1 - lon0) * Wm,
+                (lat0 - lat) / (lat0 - lat1) * Hm)
+
+    def fpx(lon, lat):
         return (x0 + (lon - lon0) / (lon1 - lon0) * w,
                 y0 + (lat0 - lat) / (lat0 - lat1) * h)
 
-    for poly in CONTINENTS:
-        pts = [px(lon, lat) for lon, lat in poly]
-        draw.polygon(pts, fill=(196, 205, 178), outline=(110, 118, 96))
-    for sea in INLAND_SEAS:
-        pts = [px(lon, lat) for lon, lat in sea]
-        draw.polygon(pts, fill=(223, 232, 238))
-    for num, lon, lat, nx, ny in DOTS:
+    polys = [[px(lon, lat) for lon, lat in poly] for poly in CONTINENTS]
+    seas = [[px(lon, lat) for lon, lat in sea] for sea in INLAND_SEAS]
+    blank = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
+
+    # --- ocean: deep blue gradient, darker toward the open sea -------
+    ocean = Image.new("RGB", (Wm, Hm))
+    od = ImageDraw.Draw(ocean)
+    top = (36, 88, 142)
+    mid = (23, 64, 114)
+    bot = (13, 40, 82)
+    for yy in range(Hm):
+        t = yy / max(Hm - 1, 1)
+        if t < 0.5:
+            c = tuple(int(top[i] + (mid[i] - top[i]) * t * 2)
+                      for i in range(3))
+        else:
+            c = tuple(int(mid[i] + (bot[i] - mid[i]) * (t - 0.5) * 2)
+                      for i in range(3))
+        od.line([(0, yy), (Wm, yy)], fill=c)
+
+    # --- land mask, and the continental shelf glowing around it ------
+    mask = Image.new("L", (Wm, Hm), 0)
+    md = ImageDraw.Draw(mask)
+    for pts in polys:
+        md.polygon(pts, fill=255)
+    shelf = mask.filter(ImageFilter.GaussianBlur(SS * 4))
+    shelf_rgb = Image.new("RGB", (Wm, Hm), (74, 130, 174))
+    ocean = Image.composite(shelf_rgb, ocean,
+                            shelf.point(lambda v: v * 3 // 4))
+    ocean = ocean.convert("RGBA")
+
+    # --- graticule: very faint, ocean only ---------------------------
+    grat = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(grat)
+    for lon in range(-150, 181, 30):
+        gx = (lon - lon0) / (lon1 - lon0) * Wm
+        gd.line([(gx, 0), (gx, Hm)], fill=(170, 200, 228, 44), width=1)
+    for lat in range(-50, 71, 25):
+        gy = (lat0 - lat) / (lat0 - lat1) * Hm
+        gd.line([(0, gy), (Wm, gy)], fill=(170, 200, 228, 44), width=1)
+    ocean = Image.alpha_composite(ocean, grat)
+
+    # --- land layer: drop shadow (lower right), rim light (upper left)
+    land = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
+    shadow = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(shadow)
+    for pts in polys:
+        sd.polygon([(x + 2 * SS, y + 3 * SS) for x, y in pts],
+                   fill=(8, 24, 52, 135))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(SS * 1.5))
+    land = Image.alpha_composite(land, shadow)
+    rim = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
+    rd = ImageDraw.Draw(rim)
+    for pts in polys:
+        rd.polygon([(x - 2 * SS, y - 2 * SS) for x, y in pts],
+                   fill=(255, 244, 214, 70))
+    rim = rim.filter(ImageFilter.GaussianBlur(SS * 1.2))
+    land = Image.alpha_composite(land, rim)
+
+    # --- base land fill: mid green, deep enough to hold the tints -----
+    ld = ImageDraw.Draw(land)
+    for pts in polys:
+        ld.polygon(pts, fill=(140, 162, 104, 255))
+
+    def clip(layer):
+        """Keep a full-frame overlay only where land is."""
+        return Image.composite(layer, blank, mask)
+
+    def tint_band(lat_a, lat_b, color, alpha):
+        """Soft horizontal terrain tint between two latitudes."""
+        layer = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
+        td = ImageDraw.Draw(layer)
+        _, ya = px(0, lat_a)
+        _, yb = px(0, lat_b)
+        td.rectangle([0, min(ya, yb), Wm, max(ya, yb)],
+                     fill=color + (alpha,))
+        return layer.filter(ImageFilter.GaussianBlur(SS * 2))
+
+    # Arid belts tan, tropics lush green, far north darker boreal.
+    land = Image.alpha_composite(land, clip(tint_band(14, 31,
+                                 (198, 172, 120), 60)))
+    land = Image.alpha_composite(land, clip(tint_band(-30, -13,
+                                 (198, 172, 120), 55)))
+    land = Image.alpha_composite(land, clip(tint_band(-12, 12,
+                                 (88, 138, 78), 95)))
+    land = Image.alpha_composite(land, clip(tint_band(58, 84,
+                                 (104, 124, 94), 70)))
+
+    # --- high ground: soft brown blotches on the great ranges ---------
+    peaks = [(-72, -18, 6, 12), (-112, 44, 8, 7), (84, 30, 10, 5),
+             (10, 46, 5, 3), (-6, 31, 5, 3), (37, 2, 6, 6),
+             (-105, 38, 7, 6)]
+    mlayer = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
+    md2 = ImageDraw.Draw(mlayer)
+    for lon, lat, rx, ry in peaks:
         cx, cy = px(lon, lat)
+        md2.ellipse([cx - rx * SS, cy - ry * SS,
+                     cx + rx * SS, cy + ry * SS],
+                    fill=(148, 126, 90, 110))
+    mlayer = mlayer.filter(ImageFilter.GaussianBlur(SS * 3))
+    land = Image.alpha_composite(land, clip(mlayer))
+
+    # --- grain: deterministic speckles so no expanse stays flat -------
+    rng = random.Random(20261122)
+    sp = Image.new("RGBA", (Wm, Hm), (0, 0, 0, 0))
+    spd = ImageDraw.Draw(sp)
+    mpx = mask.load()
+    tones = [(255, 255, 240, 34), (60, 70, 40, 34),
+             (210, 190, 140, 32), (90, 110, 70, 32)]
+    for _ in range(3200):
+        x = rng.randrange(Wm)
+        y = rng.randrange(Hm)
+        if mpx[x, y]:
+            r = rng.choice([1, 1, 2])
+            spd.ellipse([x - r, y - r, x + r, y + r],
+                        fill=rng.choice(tones))
+    sp = sp.filter(ImageFilter.GaussianBlur(0.6))
+    land = Image.alpha_composite(land, sp)
+
+    # --- hill-shading: light from the upper left ----------------------
+    grad = Image.new("L", (24, 24))
+    grad.putdata([int(255 * (1 - 0.45 * ((x / 23 + y / 23) / 2)))
+                  for y in range(24) for x in range(24)])
+    grad = grad.resize((Wm, Hm), Image.BICUBIC)
+    light = Image.new("RGBA", (Wm, Hm), (255, 250, 230, 0))
+    light.putalpha(grad.point(lambda v: (v - 140) * 18 // 115))
+    land = Image.alpha_composite(land, clip(light))
+    shade = Image.new("RGBA", (Wm, Hm), (10, 20, 44, 0))
+    shade.putalpha(grad.point(lambda v: (255 - v) * 26 // 115))
+    land = Image.alpha_composite(land, clip(shade))
+
+    # --- coastline stroke, then inland seas cut back in ---------------
+    for pts in polys:
+        ld.line(pts + [pts[0]], fill=(58, 68, 48, 255), width=SS)
+    for pts in seas:
+        ld.polygon(pts, fill=(56, 108, 156, 255))
+        ld.line(pts + [pts[0]], fill=(44, 84, 128, 255), width=SS)
+
+    # --- compose, vignette, downscale ---------------------------------
+    map_img = Image.alpha_composite(ocean, land)
+    vig = Image.new("L", (Wm, Hm), 0)
+    vd = ImageDraw.Draw(vig)
+    vd.rectangle([SS * 10, SS * 8, Wm - SS * 10, Hm - SS * 8], fill=255)
+    vig = vig.filter(ImageFilter.GaussianBlur(SS * 12))
+    dark = Image.new("RGBA", (Wm, Hm), (6, 14, 34, 255))
+    dark.putalpha(vig.point(lambda v: (255 - v) * 70 // 255))
+    map_img = Image.alpha_composite(map_img, dark)
+    map_img = map_img.convert("RGB").resize((w, h), Image.LANCZOS)
+    page.paste(map_img, (x0, y0))
+    draw.rectangle([x0, y0, x0 + w, y0 + h], outline=RULE, width=1)
+
+    # --- dots: crisp, on top of all shading ---------------------------
+    for num, lon, lat, nx, ny in DOTS:
+        cx, cy = fpx(lon, lat)
         cx += nx
         cy += ny
         # Small dots: the European stories and Washington/Ottawa sit
         # only ~8 px apart, so a radius of 5 (7 for two-digit 10) is
         # what keeps every number readable without overlap.
         r = 5 if num < 10 else 7
+        # Thin dark ring only (no filled halo disc): neighbours sit
+        # ~8 px apart, so a disc would merge them into one blob.
+        draw.ellipse([cx - r - 1, cy - r - 1, cx + r + 1, cy + r + 1],
+                     outline=(16, 32, 64), width=1)
         draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=RED,
                      outline=(255, 255, 255), width=1)
         label = str(num)
@@ -596,7 +753,7 @@ def build_page(base_dir):
     secf = font(SERIF_BOLD, 14)
     draw.text((MX, 818), "WHERE IT HAPPENED", font=secf, fill=NAVY)
     draw.text((MX + 316, 818), "THE DAY IN BRIEF", font=secf, fill=NAVY)
-    draw_map(draw, MX, 840, 300, 92)
+    draw_map(draw, page, MX, 840, 300, 92)
     leg = "Dots 1-10 match the big stories above."
     draw.text((MX, 936), leg, font=font(SANS, 9), fill=GREY)
     bx0 = MX + 316
