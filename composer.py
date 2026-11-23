@@ -301,23 +301,29 @@ def draw_map(draw, page, x0, y0, w, h):
         cy += ny
         # Cluster dots are a touch smaller (radius 4) so neighbours
         # pulled apart by the nudges above never merge; lone dots
-        # stay radius 5, and two-digit 10 stays radius 6.
+        # stay radius 5. Two-digit 10 gets radius 7 and a 7 px label:
+        # at radius 6 its "10" spanned the whole circle and touched
+        # the ring on both sides.
         if num in (2, 3, 4, 5, 6, 7):
             r = 4
         elif num < 10:
             r = 5
         else:
-            r = 6
+            r = 7
         # Thin dark ring only (no filled halo disc): neighbours sit
         # ~8 px apart, so a disc would merge them into one blob.
         draw.ellipse([cx - r - 1, cy - r - 1, cx + r + 1, cy + r + 1],
                      outline=(16, 32, 64), width=1)
         draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=RED,
                      outline=(255, 255, 255), width=1)
+        # The number sits on its measured ink, centred in the dot:
+        # the old fixed cy-4 put the cluster dots' digits on the
+        # circle's bottom edge (0 px gap) and 10's on its sides.
         label = str(num)
-        tw = draw.textlength(label, font=font(SANS_BOLD, 8))
-        draw.text((cx - tw / 2, cy - 4), label, font=font(SANS_BOLD, 8),
-                  fill=(255, 255, 255))
+        labf = font(SANS_BOLD, 8 if num < 10 else 7)
+        lb = draw.textbbox((0, 0), label, font=labf)
+        draw.text((cx - (lb[0] + lb[2]) / 2, cy - (lb[1] + lb[3]) / 2),
+                  label, font=labf, fill=(255, 255, 255))
 
 
 # ------------------------------------------------------------- hero cards
@@ -465,7 +471,10 @@ def build_page(base_dir):
     paste_hero(draw, page, os.path.join(base_dir, "assets", "hero_cop31.jpg"),
                MX + gulf_w + 8, 154, cop_w, cop_h, "CLIMATE - COP31, TURKEY",
                "Deadlocked in overtime: no fossil-fuel deal in sight",
-               band_h=58, head_size=14, kicker_size=11)
+               # Band 66, not 58: the old band left the headline's second
+               # line 1 px past the photo's bottom frame; the taller band
+               # lifts every caption line clear of the frame.
+               band_h=66, head_size=14, kicker_size=11)
 
     # --- hero story text -------------------------------------------------
     # Gulf text under the big photo, full two-thirds width, biggest
@@ -485,17 +494,31 @@ def build_page(base_dir):
     text_block(draw, cop_x, y + 3, blines, font(SANS, 11.5), INK, 13)
 
     # --- markets strip ----------------------------------------------------
-    draw.rectangle([MX, 546, W - MX, 604], fill=RED_TINT, outline=RED, width=1)
-    draw.rectangle([MX, 546, MX + 6, 604], fill=RED)
-    draw.text((MX + 16, 552), "WALL STREET PLUNGES",
-              font=font(SERIF_BOLD, 19), fill=RED)
+    # Boxed strip: every line sits on measured ink, never on a fixed
+    # y, so no glyph touches a border. The box grew 8 px taller
+    # (540..606) to hold the air: the title's ink starts 8 px below
+    # the top border, the body lines stack off the ink above them,
+    # and the last line's ink ends 8 px above the bottom border.
+    # The strip still clears the Gulf text above by 19 px and the
+    # featured heading below by 10 px.
+    draw.rectangle([MX, 540, W - MX, 606], fill=RED_TINT, outline=RED, width=1)
+    draw.rectangle([MX, 540, MX + 6, 606], fill=RED)
+    mtf = font(SERIF_BOLD, 18)
+    tb = draw.textbbox((0, 0), "WALL STREET PLUNGES", font=mtf)
+    draw.text((MX + 16, 540 + 8 - tb[1]), "WALL STREET PLUNGES",
+              font=mtf, fill=RED)
     mlines = [
         "S&P 500 -3.7%, its 7th straight down day  |  Dow -950  |  "
         "Nasdaq -5.3%, worst week since 2020",
         "Nvidia -14% as CEO Jensen Huang resigns  |  Anthropic -9% after "
         "its $83bn IPO  |  $8.7tn gone since 6 Oct  |  VIX 35.89",
     ]
-    text_block(draw, MX + 16, 576, mlines, font(SANS, 12), INK, 14)
+    mbf = font(SANS, 11.5)
+    ink_top = 540 + 8 + (tb[3] - tb[1]) + 6
+    for line in mlines:
+        lb = draw.textbbox((0, 0), line, font=mbf)
+        draw.text((MX + 16, ink_top - lb[1]), line, font=mbf, fill=INK)
+        ink_top += (lb[3] - lb[1]) + 5
     # seven descending bars: the S&P's seven straight down days
     bars = [30, 26, 22, 19, 15, 12, 9]
     bx = W - MX - 8 - len(bars) * 13
@@ -503,8 +526,10 @@ def build_page(base_dir):
         x0 = bx + i * 13
         draw.rectangle([x0, 600 - bh, x0 + 9, 600], fill=RED)
     blab = "S&P: 7 down days"
-    tw = draw.textlength(blab, font=font(SANS_BOLD, 9))
-    draw.text((W - MX - 8 - tw, 552), blab, font=font(SANS_BOLD, 9),
+    blf = font(SANS_BOLD, 9)
+    tw = draw.textlength(blab, font=blf)
+    bb = draw.textbbox((0, 0), blab, font=blf)
+    draw.text((W - MX - 8 - tw, 540 + 8 - bb[1]), blab, font=blf,
               fill=RED)
 
     # --- featured stories --------------------------------------------------
@@ -555,17 +580,27 @@ def build_page(base_dir):
                   font=font(SANS, 11), fill=INK)
 
     # --- the day in numbers ---------------------------------------------------
+    # Boxed stat cells: the old 26 px cells squeezed the grey label
+    # onto the bottom border — its descenders ran 2 px past the line.
+    # The cells are now 30 px tall (966..996) and both lines sit on
+    # measured ink: the red value's ink starts 4 px below the top
+    # border, the grey label's ink ends 4 px above the bottom border,
+    # and at least 3 px of air stays between the two lines.
     nbox_w = (CW - 5 * 6) // 6
     for i, (val, lab) in enumerate(NUMBERS):
         x = MX + i * (nbox_w + 6)
-        draw.rectangle([x, 966, x + nbox_w, 992], fill=PAPER_DARK,
+        draw.rectangle([x, 966, x + nbox_w, 996], fill=PAPER_DARK,
                        outline=RULE, width=1)
-        vf = font(SANS_BOLD, 14)
-        tw = draw.textlength(val, font=vf)
-        draw.text((x + (nbox_w - tw) / 2, 969), val, font=vf, fill=RED)
-        lf = font(SANS, 9)
-        tw = draw.textlength(lab, font=lf)
-        draw.text((x + (nbox_w - tw) / 2, 983), lab, font=lf, fill=GREY)
+        vf = font(SANS_BOLD, 11)
+        vb = draw.textbbox((0, 0), val, font=vf)
+        # Centred on the ink itself, left-right as well as top-bottom,
+        # so the air around each glyph is symmetric on all four sides.
+        draw.text((x + (nbox_w - (vb[2] - vb[0])) / 2 - vb[0],
+                   966 + 4 - vb[1]), val, font=vf, fill=RED)
+        lf = font(SANS, 8)
+        lb = draw.textbbox((0, 0), lab, font=lf)
+        draw.text((x + (nbox_w - (lb[2] - lb[0])) / 2 - lb[0],
+                   996 - 4 - lb[3]), lab, font=lf, fill=GREY)
 
     # --- footer ----------------------------------------------------------------
     foot1 = ("Sources: AP, Reuters, AFP, BBC, The Guardian, Bloomberg, "
@@ -573,6 +608,8 @@ def build_page(base_dir):
     foot2 = ("Hero images are AI-generated illustrations. Disputed claims "
              "are attributed in the text. The World Today is a one-day news "
              "summary, not a real newspaper.")
-    draw.text((MX, 998), foot1, font=font(SANS, 9.5), fill=GREY)
-    draw.text((MX, 1009), foot2, font=font(SANS, 9.5), fill=GREY)
+    # The stat cells grew 4 px taller (bottom 996), so the footer
+    # moves 1 px down to keep its air below the boxes.
+    draw.text((MX, 999), foot1, font=font(SANS, 9.5), fill=GREY)
+    draw.text((MX, 1010), foot2, font=font(SANS, 9.5), fill=GREY)
     return page
